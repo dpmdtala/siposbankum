@@ -213,6 +213,9 @@
 
                 <div id="menu-group-layanan" class="mt-2">
                     <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-[0.14em] text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-emerald-600"></i> Layanan Hukum</div>
+                    <button type="button" id="tab-btn-tahapan-layanan" onclick="switchTab('tahapan-layanan')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-route text-blue-600 w-5 text-center"></i> Tahapan Layanan
+                    </button>
                     <button type="button" id="tab-btn-laporkan-kasus" onclick="switchTab('laporkan-kasus')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
                         <i class="fa-solid fa-pen-to-square text-amber-600 w-5 text-center"></i> Laporkan Kasus
                     </button>
@@ -340,6 +343,29 @@
                                 <div class="h-72 flex justify-center items-center relative"><canvas id="chartTrenKasus"></canvas></div>
                             </div>
                         </div>
+                    </section>
+
+                    <!-- Tahapan Layanan Section -->
+                    <section id="tab-tahapan-layanan" class="tab-content hidden space-y-6">
+                        <div class="bg-gradient-to-r from-blue-900 via-indigo-800 to-emerald-800 text-white p-6 sm:p-8 rounded-3xl shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center text-2xl shrink-0"><i class="fa-solid fa-route"></i></div>
+                                <div>
+                                    <p class="text-[10px] uppercase tracking-[0.2em] font-bold text-emerald-200">Layanan Pos Bantuan Hukum Desa/Kelurahan</p>
+                                    <h2 class="text-2xl sm:text-3xl font-extrabold mt-1">Tahapan Layanan SI-POSBANKUM</h2>
+                                    <p class="text-sm text-white/80 mt-2 max-w-3xl">Panduan tahapan pelayanan Posbankum mulai dari penerimaan laporan sampai dokumentasi dan tindak lanjut.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><div class="flex gap-4"><span class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-extrabold shrink-0">01</span><div><h3 class="font-extrabold">Penerimaan & Registrasi</h3><p class="text-xs text-slate-500 mt-1 leading-relaxed">Masyarakat menyampaikan persoalan hukum. Petugas/paralegal mencatat identitas, pokok masalah, lokasi, dan kebutuhan layanan.</p></div></div></div>
+                            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><div class="flex gap-4"><span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-extrabold shrink-0">02</span><div><h3 class="font-extrabold">Identifikasi & Verifikasi Awal</h3><p class="text-xs text-slate-500 mt-1 leading-relaxed">Paralegal menggali fakta awal, dokumen, dan kebutuhan penerima layanan untuk menentukan bentuk layanan yang sesuai.</p></div></div></div>
+                            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><div class="flex gap-4"><span class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-extrabold shrink-0">03</span><div><h3 class="font-extrabold">Konsultasi & Informasi Hukum</h3><p class="text-xs text-slate-500 mt-1 leading-relaxed">Memberikan penjelasan hukum, konsultasi, penyuluhan, dan pemberdayaan masyarakat sesuai kebutuhan.</p></div></div></div>
+                            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><div class="flex gap-4"><span class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-extrabold shrink-0">04</span><div><h3 class="font-extrabold">Penyelesaian Nonlitigasi</h3><p class="text-xs text-slate-500 mt-1 leading-relaxed">Jika sesuai, layanan dapat berupa mediasi, negosiasi, pendampingan di luar pengadilan, investigasi/penelitian hukum, atau drafting dokumen.</p></div></div></div>
+                            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><div class="flex gap-4"><span class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-extrabold shrink-0">05</span><div><h3 class="font-extrabold">Rujukan Lanjutan</h3><p class="text-xs text-slate-500 mt-1 leading-relaxed">Apabila membutuhkan pendampingan lebih lanjut, Posbankum dapat memberikan rujukan kepada advokat/organisasi bantuan hukum sesuai ketentuan.</p></div></div></div>
+                            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><div class="flex gap-4"><span class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-extrabold shrink-0">06</span><div><h3 class="font-extrabold">Dokumentasi & Tindak Lanjut</h3><p class="text-xs text-slate-500 mt-1 leading-relaxed">Hasil layanan dicatat dalam sistem, status ditindaklanjuti, dan data digunakan untuk pemantauan serta pembinaan layanan.</p></div></div></div>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-xs text-amber-900 leading-relaxed"><b><i class="fa-solid fa-circle-info mr-1"></i> Catatan:</b> Tahapan di atas merupakan alur operasional aplikasi/Posbankum. Bentuk layanan dan kewenangan paralegal tetap mengikuti penugasan Pemberi Bantuan Hukum dan peraturan perundang-undangan yang berlaku.</div>
                     </section>
 
                     <!-- Alur Pelayanan -->
@@ -1521,6 +1547,7 @@
         function applyMenuVisibility() {
             const allMenuIds = [
                 'tab-btn-dashboard',
+                'tab-btn-tahapan-layanan',
                 'tab-btn-laporkan-kasus',
                 'tab-btn-penyuluhan',
                 'tab-btn-jumlah-kasus',
@@ -2131,7 +2158,7 @@
             }
 
             if (window.currentUser && ['guest', 'public', 'pimpinan'].includes(window.currentUser.role)) {
-                const allowedGuestTabs = ['dashboard', 'data-paralegal', 'berita', 'kepuasan'];
+                const allowedGuestTabs = ['dashboard', 'tahapan-layanan', 'data-paralegal', 'berita', 'kepuasan'];
                 if (!allowedGuestTabs.includes(tabId)) {
                     alert('Akses dibatasi. Tamu / Pimpinan hanya dapat mengakses Dashboard & Statistik, Data Paralegal, Berita, dan Kepuasan Layanan.');
                     return;
