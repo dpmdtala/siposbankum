@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -221,7 +220,7 @@
                         <i class="fa-solid fa-pen-to-square text-amber-600 w-5 text-center"></i> Laporkan Kasus
                     </button>
                     <button type="button" id="tab-btn-jumlah-kasus" onclick="switchTab('jumlah-kasus')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                        <i class="fa-solid fa-chart-line text-indigo-600 w-5 text-center"></i> Jumlah Kasus Masuk
+                        <i class="fa-solid fa-chart-line text-indigo-600 w-5 text-center"></i> Rekap Kasus Masuk
                     </button>
                 </div>
 
@@ -628,13 +627,13 @@
                         </div>
                     </section>
                     
-                    <!-- Jumlah Kasus Masuk Section -->
+                    <!-- Rekap Kasus Masuk Section -->
                     <section id="tab-jumlah-kasus" class="tab-content hidden space-y-4">
                         <div class="bg-white p-6 rounded-3xl shadow-sm space-y-4">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
                                 <div>
-                                    <h3 class="font-extrabold text-lg text-slate-800">Jumlah Kasus Masuk</h3>
-                                    <p id="jumlah-kasus-subtitle" class="text-xs text-slate-500 mt-0.5">Menampilkan rekapitulasi data kasus masuk.</p>
+                                    <h3 class="font-extrabold text-lg text-slate-800">Rekap Kasus Masuk</h3>
+                                    <p id="jumlah-kasus-subtitle" class="text-xs text-slate-500 mt-0.5">Menampilkan rekapitulasi kasus masuk.</p>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
                                     <button type="button" onclick="renderJumlahKasusTable()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-slate-200">
@@ -657,7 +656,7 @@
                                     <h2 class="font-extrabold text-lg text-emerald-800">Sistem Informasi Pos Bantuan Hukum (SI-POSBANKUM)</h2>
                                     <p class="text-[10px] text-slate-600">Komplek Perkantoran Pemerintah Kabupaten Tanah Laut, Pelaihari</p>
                                 </div>
-                                <div class="mt-4"><h3 class="font-bold text-sm uppercase tracking-wide underline">Laporan Rekapitulasi Jumlah Kasus Masuk Posbankum Desa</h3></div>
+                                <div class="mt-4"><h3 class="font-bold text-sm uppercase tracking-wide underline">Laporan Rekapitulasi Kasus Masuk Posbankum Desa</h3></div>
                             </div>
 
                             <div class="flex flex-col sm:flex-row gap-3 items-center justify-between no-print bg-slate-50 p-3 rounded-2xl border border-slate-200">
@@ -2270,6 +2269,9 @@
                         <button type="button" onclick='openCaseSummaryModal(${JSON.stringify(item.noReg || '')})' class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm">
                             <i class="fa-solid fa-eye"></i> Lihat Kasus
                         </button>
+                        <button type="button" onclick='confirmDeleteCase(${JSON.stringify(item.noReg || '')})' class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold shadow-sm ml-1.5">
+                            <i class="fa-solid fa-trash-can"></i> Hapus Kasus
+                        </button>
                     </td>
                 </tr>`;
             });
@@ -2278,6 +2280,24 @@
                 html = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada data kasus masuk untuk kriteria wilayah ini.</td></tr>`;
             }
             tbody.innerHTML = html;
+        }
+
+        async function confirmDeleteCase(noReg) {
+            const item = (window.databaseKasus || []).find(k => String(k.noReg || '') === String(noReg || ''));
+            if (!item) { alert('Data kasus tidak ditemukan.'); return; }
+            const identitas = `${item.noReg || '-'} — ${item.namaPelapor || 'Pelapor tidak diisi'} — ${item.desa || 'Desa tidak diisi'}`;
+            const yakin = confirm(`Hapus kasus berikut?\n\n${identitas}\n\nTindakan ini akan menghapus data kasus dari sistem dan tidak dapat dibatalkan.`);
+            if (!yakin) return;
+            try {
+                await apiRequest('deleteCase', { noReg: item.noReg });
+                closeCaseSummaryModal();
+                await loadInternalData();
+                updateDashboardStatsAndCharts();
+                renderJumlahKasusTable();
+                alert(`Kasus ${item.noReg} berhasil dihapus.`);
+            } catch (e) {
+                alert(e.message || 'Kasus gagal dihapus.');
+            }
         }
 
         function openCaseSummaryModal(noReg) {
