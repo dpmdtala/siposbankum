@@ -2421,7 +2421,12 @@
             const item=(window.databaseKasus||[]).find(k=>String(k.noReg||'')===String(noReg||''));
             if(!item){alert('Data kasus tidak ditemukan.');return;}
             const esc=v=>escapeHtml(String(v??'-'));
-            const petugas=window.currentUser?.role==='paralegal' ? String(window.currentUser?.fullname||'-') : String(item.petugas||window.currentUser?.fullname||'-');
+            // Petugas cetak harus mengikuti akun yang benar-benar membuat kasus,
+            // bukan akun yang sedang membuka/menekan tombol Print.
+            const createdBy=String(item.createdBy||'').trim().toLowerCase();
+            const paralegalByUsername=(window.databaseParalegal||[]).find(p=>String(p.username||'').trim().toLowerCase()===createdBy);
+            const petugasDariPembuat=String(paralegalByUsername?.fullname||'').trim();
+            const petugas=petugasDariPembuat || String(item.petugas||'').trim() || (window.currentUser?.role==='paralegal' ? String(window.currentUser?.fullname||'-') : '-');
             const w=window.open('','_blank','width=900,height=700');
             if(!w){alert('Pop-up diblokir browser. Izinkan pop-up untuk mencetak ringkasan kasus.');return;}
             w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Ringkasan Kasus ${esc(item.noReg)}</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:36px;font-size:13px}h1,h2,h3{margin:0} .kop{text-align:center;border-bottom:2px solid #111827;padding-bottom:12px;margin-bottom:20px}.kop .a{font-weight:700;font-size:14px}.kop .b{font-weight:800;font-size:16px}.kop .c{font-weight:800;font-size:18px;margin-top:4px}.title{text-align:center;font-weight:800;font-size:16px;margin:18px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.box{border:1px solid #d1d5db;border-radius:8px;padding:10px}.label{font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700}.value{font-weight:700;margin-top:4px;white-space:pre-line}.full{margin-top:14px}.full .value{line-height:1.6}.foot{margin-top:30px;text-align:right}.actions{margin-top:24px;text-align:center}@media print{.actions{display:none}} </style></head><body onload="setTimeout(function(){window.print()},250)"><div class="kop"><div class="a">PEMERINTAH KABUPATEN TANAH LAUT</div><div class="b">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</div><div class="c">SI-POSBANKUM</div></div><div class="title">RINGKASAN KASUS</div><div class="grid"><div class="box"><div class="label">No. Registrasi</div><div class="value">${esc(item.noReg)}</div></div><div class="box"><div class="label">Status Kasus</div><div class="value">${esc(item.statusKasus||'Kasus Berjalan')}</div></div><div class="box"><div class="label">Nama Pelapor</div><div class="value">${esc(item.namaPelapor)}</div></div><div class="box"><div class="label">Wilayah</div><div class="value">${esc(item.desa)} • Kec. ${esc(item.kecamatan)}</div></div><div class="box"><div class="label">Jenis Kasus</div><div class="value">${esc(item.jenisKasus)}</div></div><div class="box"><div class="label">Bentuk Bantuan</div><div class="value">${esc(item.bantuan)}</div></div><div class="box"><div class="label">Tanggal Kejadian</div><div class="value">${esc(formatDateOnly_(item.tglKejadian||item.tanggal))}</div></div><div class="box"><div class="label">Tanggal Pelaporan</div><div class="value">${esc(formatDateOnly_(item.tglPelaporan||item.tanggal))}</div></div></div><div class="box full"><div class="label">Ringkasan Kronologi Kasus</div><div class="value">${esc(item.kronologi||'Ringkasan kronologi belum diisi.')}</div></div><div class="grid full"><div class="box"><div class="label">Catatan</div><div class="value">${esc(item.catatan||'-')}</div></div><div class="box"><div class="label">Petugas</div><div class="value">${esc(petugas)}</div></div></div><div class="foot">Dicetak dari SI-POSBANKUM</div><div class="actions"><button onclick="window.print()">Print</button></div></body></html>`);
@@ -2557,7 +2562,7 @@
         }
 
         function updateDashboardStatsAndCharts() {
-            if(['guest','public','pimpinan'].includes(window.currentUser?.role) && window.dashboardSummary){
+            if(window.dashboardSummary){
                 const d=window.dashboardSummary||{};
                 const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
                 setText('stat-total-kasus',Number(d.totalKasus||0)+' Kasus');
@@ -2578,12 +2583,45 @@
                 const cStatus=document.getElementById('chartMetodePenyelesaian');
                 if(cStatus){if(chartStatusInstance)chartStatusInstance.destroy();const vals=[Number(d.konsultasi||0),Number(d.mediasi||0),Number(d.rujukan||0),Number(d.dihentikan||0)];chartStatusInstance=new Chart(cStatus,{type:'bar',data:{labels:['Konsultasi','Mediasi','Rujukan','Dihentikan'],datasets:[{label:'Jumlah Kasus',data:vals,backgroundColor:['#3b82f6','#10b981','#6366f1','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
 
-                const kep=d.kepuasanPublik||d.kepuasanAgregat||{};
-                const kepDistribusi=kep.distribusi||{};
-                const starValues=[1,2,3,4,5].map(n=>Number(kepDistribusi[String(n)]||kepDistribusi[n]||0));
-                const jumlahResponden=Number(kep.jumlah??(kep.responden??0));
-                const rata=Number(kep.rataRata||0);
-                const positif=Number(kep.responden45??(jumlahResponden?Math.round(((starValues[3]+starValues[4])/jumlahResponden)*100):0));
+                // Kepuasan: gunakan agregat server terlebih dahulu, lalu fallback ke records.
+                // Ini mencegah kartu Dashboard kembali 0 saat struktur payload berbeda antara
+                // publicContent/internalDashboard atau saat cache belum memuat records.
+                const kep=d.kepuasanPublik||d.kepuasanAgregat||d.kepuasan||{};
+                const recordsKep=Array.isArray(window.databaseKepuasan)
+                    ? window.databaseKepuasan.filter(x=>x&&Number(x.rating)>=1&&Number(x.rating)<=5)
+                    : [];
+                const numFirst=(obj,keys)=>{
+                    for(const k of keys){
+                        const v=Number(obj?.[k]);
+                        if(Number.isFinite(v)&&v>0) return v;
+                    }
+                    return 0;
+                };
+                const kepDistribusi=kep.distribusi||kep.ratingDistribusi||kep.distribusiRating||{};
+                const fallbackDistribusi={1:0,2:0,3:0,4:0,5:0};
+                recordsKep.forEach(x=>{
+                    const r=Number(x.rating);
+                    if(r>=1&&r<=5) fallbackDistribusi[r]++;
+                });
+                const starValues=[1,2,3,4,5].map(n=>{
+                    const raw=kepDistribusi[String(n)]??kepDistribusi[n]??kepDistribusi['rating'+n]??kepDistribusi['bintang'+n]??0;
+                    const v=Number(raw);
+                    return Number.isFinite(v)&&v>0?v:fallbackDistribusi[n];
+                });
+                const jumlahDariRecords=recordsKep.length;
+                const jumlahResponden=numFirst(kep,['jumlah','responden','jumlahResponden','totalResponden','jumlah_responden'])
+                    || starValues.reduce((a,b)=>a+b,0)
+                    || jumlahDariRecords;
+                const rataDariRecords=jumlahDariRecords
+                    ? recordsKep.reduce((sum,x)=>sum+Number(x.rating||0),0)/jumlahDariRecords
+                    : 0;
+                const rata=numFirst(kep,['rataRata','rataKepuasan','average','rata_rata','mean'])
+                    || (jumlahResponden ? ((numFirst(kep,['totalRating','jumlahRating','sumRating'])||0)/jumlahResponden) : 0)
+                    || rataDariRecords;
+                const positifRaw=numFirst(kep,['responden45','persentase45','persen45','kepuasan45','empatLimaBintang']);
+                const positif=positifRaw>0
+                    ? (positifRaw<=1?Math.round(positifRaw*100):Math.round(positifRaw))
+                    : (jumlahResponden?Math.round(((starValues[3]+starValues[4])/jumlahResponden)*100):0);
                 setText('public-kepuasan-jumlah',jumlahResponden+' Orang');
                 setText('public-kepuasan-rata',rata.toFixed(2)+' ⭐');
                 const ketEl=document.getElementById('public-kepuasan-keterangan');
