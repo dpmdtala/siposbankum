@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -1907,13 +1908,47 @@
 
         async function hydrateNewsPhotos_() {
             const imgs = Array.from(document.querySelectorAll('#berita-list img[data-drive-url]'));
-            await Promise.all(imgs.map(async img => {
+            if (!imgs.length) return;
+            // Foto berita disimpan di Google Drive dan file-nya privat.
+            // Jangan mencoba menampilkan URL Drive langsung karena browser dapat
+            // menolaknya. Ambil blob melalui endpoint getPublicMedia lalu tampilkan
+            // sebagai data URL. Ini juga mencegah onerror menyembunyikan foto sebelum
+            // proses hydration selesai.
+            const urls = imgs.map(img => img.getAttribute('data-drive-url') || '').filter(Boolean);
+            const byUrl = new Map();
+            for (let i = 0; i < urls.length; i += 8) {
+                const chunk = urls.slice(i, i + 8);
                 try {
-                    const r = await apiRequest('getPublicMedia', {url: img.getAttribute('data-drive-url') || ''});
-                    const d = r?.data || {};
-                    if (d.base64 && d.mimeType) img.src = `data:${d.mimeType};base64,${d.base64}`;
-                } catch (_) {}
-            }));
+                    const r = await apiRequest('getPublicMediaBatch', {urls: chunk});
+                    const items = r?.data?.items || {};
+                    Object.keys(items).forEach(url => byUrl.set(url, items[url]));
+                } catch (_) {
+                    // Fallback satu per satu agar satu foto bermasalah tidak
+                    // membuat seluruh foto berita gagal dimuat.
+                    await Promise.all(chunk.map(async url => {
+                        try {
+                            const r = await apiRequest('getPublicMedia', {url});
+                            const d = r?.data || {};
+                            if (d.base64 && d.mimeType) byUrl.set(url, d);
+                        } catch (_) {}
+                    }));
+                }
+            }
+            imgs.forEach(img => {
+                const url = img.getAttribute('data-drive-url') || '';
+                const d = byUrl.get(url);
+                const fallback = img.parentElement?.querySelector('[data-photo-fallback]');
+                if (d?.base64 && d?.mimeType) {
+                    img.src = `data:${d.mimeType};base64,${d.base64}`;
+                    img.classList.remove('hidden');
+                    img.style.display = 'block';
+                    if (fallback) fallback.style.display = 'none';
+                } else {
+                    img.classList.add('hidden');
+                    img.style.display = 'none';
+                    if (fallback) fallback.style.display = 'flex';
+                }
+            });
         }
 
         function renderBeritaList() {
@@ -1931,7 +1966,10 @@
                 return;
             }
             container.innerHTML = data.map(x => {
-                const img = x.fotoUrl ? `<img data-drive-url="${escapeBeritaHtml(x.fotoUrl)}" src="${escapeBeritaHtml(x.fotoUrl)}" alt="Dokumentasi berita" class="w-full h-48 object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div style="display:none" class="w-full h-48 bg-gradient-to-br from-amber-50 to-emerald-50 items-center justify-center text-amber-500"><i class="fa-solid fa-newspaper text-5xl"></i></div>` : `<div class="w-full h-48 bg-gradient-to-br from-amber-50 to-emerald-50 flex items-center justify-center text-amber-500"><i class="fa-solid fa-newspaper text-5xl"></i></div>`;
+                const img = x.fotoUrl ? `<div class="relative w-full h-48 bg-gradient-to-br from-amber-50 to-emerald-50">
+                    <img data-drive-url="${escapeBeritaHtml(x.fotoUrl)}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Dokumentasi berita" class="hidden w-full h-48 object-cover">
+                    <div data-photo-fallback class="absolute inset-0 flex items-center justify-center text-amber-500"><i class="fa-solid fa-newspaper text-5xl"></i></div>
+                </div>` : `<div class="w-full h-48 bg-gradient-to-br from-amber-50 to-emerald-50 flex items-center justify-center text-amber-500"><i class="fa-solid fa-newspaper text-5xl"></i></div>`;
                 const lokasi = [x.desa, x.kecamatan].filter(Boolean).join(' • ');
                 const excerpt = escapeBeritaHtml(x.isi || '').replace(/\n/g,'<br>');
                 return `<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition">
