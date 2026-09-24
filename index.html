@@ -67,6 +67,10 @@
   .login-center-content .login-form-card{border-radius:22px;}
 }
 </style>
+<style>
+#app-sidebar::-webkit-scrollbar{width:5px}
+#app-sidebar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px}
+</style>
 </head>
 <body class="min-h-screen flex flex-col text-slate-800 bg-slate-50">
 
@@ -188,37 +192,66 @@
         </header>
 
         <div class="flex-1 flex flex-col md:flex-row w-full">
-            <aside id="app-sidebar" class="w-full md:w-64 bg-white border-r border-slate-200 p-4 flex flex-col gap-1 shrink-0 no-print">
+            <aside id="app-sidebar" class="w-full md:w-64 bg-white border-r border-slate-200 p-4 flex flex-col gap-1 shrink-0 no-print overflow-y-auto">
+                <div class="px-3 pb-2 mb-1 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-extrabold tracking-wider text-slate-800 uppercase">SI-POSBANKUM</p>
+                            <p class="text-[9px] text-slate-500 truncate">Sistem Informasi Pos Bantuan Hukum</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-[0.14em] text-slate-400 uppercase">Beranda</div>
                 <button type="button" id="tab-btn-dashboard" onclick="switchTab('dashboard')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-emerald-900 bg-emerald-50 font-bold transition flex items-center gap-3">
                     <i class="fa-solid fa-chart-pie text-emerald-600 w-5 text-center"></i> Dashboard & Statistik
                 </button>
-                <button type="button" id="tab-btn-laporkan-kasus" onclick="switchTab('laporkan-kasus')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-pen-to-square text-amber-600 w-5 text-center"></i> Laporkan Kasus
-                </button>
-                <button type="button" id="tab-btn-penyuluhan" onclick="switchTab('penyuluhan')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-chalkboard-user text-teal-600 w-5 text-center"></i> Penyuluhan Hukum
-                </button>
-                <button type="button" id="tab-btn-jumlah-kasus" onclick="switchTab('jumlah-kasus')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-chart-line text-indigo-600 w-5 text-center"></i> Jumlah Kasus Masuk
-                </button>
-                <button type="button" id="tab-btn-berita" onclick="switchTab('berita')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-newspaper text-amber-700 w-5 text-center"></i> Berita / Kegiatan Paralegal
-                </button>
-                <button type="button" id="tab-btn-data-paralegal" onclick="switchTab('data-paralegal')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-users text-teal-700 w-5 text-center"></i> Data Paralegal
-                </button>
-                <button type="button" id="tab-btn-setting-profile" onclick="switchTab('setting-profile')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-user-gear text-emerald-700 w-5 text-center"></i> Setting Profile
-                </button>
-                <button type="button" id="tab-btn-kepuasan" onclick="switchTab('kepuasan')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-star text-amber-500 w-5 text-center"></i> Kepuasan Layanan
-                </button>
-                <button type="button" id="tab-btn-paralegal-management" onclick="switchTab('paralegal-management')" class="tab-btn admin-only-menu hidden w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-users-gear text-gov-700 w-5 text-center"></i> Kelola Akun Paralegal
-                </button>
-                <button type="button" id="tab-btn-sheets" onclick="switchTab('sheets')" class="tab-btn admin-only-menu hidden w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
-                    <i class="fa-solid fa-file-excel text-emerald-700 w-5 text-center"></i> Koneksi GAS URL
-                </button>
+
+                <div id="menu-group-layanan" class="mt-2">
+                    <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-[0.14em] text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-emerald-600"></i> Layanan Hukum</div>
+                    <button type="button" id="tab-btn-laporkan-kasus" onclick="switchTab('laporkan-kasus')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-pen-to-square text-amber-600 w-5 text-center"></i> Laporkan Kasus
+                    </button>
+                    <button type="button" id="tab-btn-jumlah-kasus" onclick="switchTab('jumlah-kasus')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-chart-line text-indigo-600 w-5 text-center"></i> Jumlah Kasus Masuk
+                    </button>
+                </div>
+
+                <div id="menu-group-pembinaan" class="mt-2">
+                    <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-[0.14em] text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-users text-teal-600"></i> Pembinaan & Informasi</div>
+                    <button type="button" id="tab-btn-penyuluhan" onclick="switchTab('penyuluhan')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-chalkboard-user text-teal-600 w-5 text-center"></i> Penyuluhan Hukum
+                    </button>
+                    <button type="button" id="tab-btn-data-paralegal" onclick="switchTab('data-paralegal')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-users text-teal-700 w-5 text-center"></i> Data Paralegal
+                    </button>
+                    <button type="button" id="tab-btn-berita" onclick="switchTab('berita')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-newspaper text-amber-700 w-5 text-center"></i> Berita / Kegiatan Paralegal
+                    </button>
+                    <button type="button" id="tab-btn-kepuasan" onclick="switchTab('kepuasan')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-star text-amber-500 w-5 text-center"></i> Kepuasan Layanan
+                    </button>
+                </div>
+
+                <div id="menu-group-administrasi" class="admin-only-group mt-2 hidden">
+                    <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-[0.14em] text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-shield-halved text-gov-700"></i> Administrasi</div>
+                    <button type="button" id="tab-btn-paralegal-management" onclick="switchTab('paralegal-management')" class="tab-btn admin-only-menu w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-users-gear text-gov-700 w-5 text-center"></i> Kelola Akun Paralegal
+                    </button>
+                    <button type="button" id="tab-btn-sheets" onclick="switchTab('sheets')" class="tab-btn admin-only-menu w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-cloud-arrow-up text-emerald-700 w-5 text-center"></i> Sinkronisasi & Koneksi
+                    </button>
+                </div>
+
+                <div id="menu-group-akun" class="mt-2">
+                    <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-[0.14em] text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-user-circle text-emerald-600"></i> Akun</div>
+                    <button type="button" id="tab-btn-setting-profile" onclick="switchTab('setting-profile')" class="tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-user-gear text-emerald-700 w-5 text-center"></i> Profil Saya
+                    </button>
+                </div>
             </aside>
 
             <main class="flex-1 w-full p-4 sm:p-6 overflow-y-auto flex flex-col justify-between">
@@ -918,6 +951,40 @@
                                     <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Penilaian Kepuasan
                                 </button>
                             </form>
+
+                            <div id="kepuasan-admin-panel" class="hidden space-y-5 pt-2">
+                                <div class="border-t border-slate-200 pt-5">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                        <div>
+                                            <h4 class="font-extrabold text-base text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chart-column text-indigo-600"></i> Rekap & Analisis Kepuasan Layanan</h4>
+                                            <p class="text-xs text-slate-500 mt-1">Ringkasan penilaian, responden, kritik dan saran, serta rekap berdasarkan kecamatan dan desa.</p>
+                                        </div>
+                                        <button type="button" onclick="renderKepuasanAdminPanel()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Perbarui Rekap</button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4"><div class="text-[10px] uppercase font-extrabold text-amber-700">Rating Kepuasan</div><div id="kepuasan-admin-rating" class="text-2xl font-extrabold text-slate-800 mt-1">0.00 / 5</div></div>
+                                    <div class="rounded-2xl border border-blue-100 bg-blue-50 p-4"><div class="text-[10px] uppercase font-extrabold text-blue-700">Jumlah Responden</div><div id="kepuasan-admin-responden" class="text-2xl font-extrabold text-slate-800 mt-1">0</div></div>
+                                    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4"><div class="text-[10px] uppercase font-extrabold text-emerald-700">Responden 4–5 Bintang</div><div id="kepuasan-admin-positif" class="text-2xl font-extrabold text-slate-800 mt-1">0%</div></div>
+                                </div>
+                                <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                                    <div class="rounded-2xl border border-slate-200 p-4 bg-white">
+                                        <h5 class="font-extrabold text-sm text-slate-800 mb-3">Grafik Kepuasan</h5>
+                                        <div class="h-64"><canvas id="chartKepuasanAdmin"></canvas></div>
+                                    </div>
+                                    <div class="rounded-2xl border border-slate-200 p-4 bg-white">
+                                        <h5 class="font-extrabold text-sm text-slate-800 mb-3">Rekap Berdasarkan Kecamatan</h5>
+                                        <div class="overflow-auto max-h-64"><table class="w-full text-xs"><thead class="bg-slate-50 sticky top-0"><tr><th class="p-2 text-left">Kecamatan</th><th class="p-2 text-center">Responden</th><th class="p-2 text-center">Rata-rata</th></tr></thead><tbody id="kepuasan-kecamatan-tbody"></tbody></table></div>
+                                    </div>
+                                </div>
+                                <div class="rounded-2xl border border-slate-200 p-4 bg-white">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                                        <div><h5 class="font-extrabold text-sm text-slate-800">Kritik & Saran</h5><p class="text-[10px] text-slate-500">Data masukan hanya dapat dibaca oleh Super Admin Kabupaten.</p></div>
+                                        <select id="kepuasan-admin-desa-filter" onchange="renderKepuasanAdminPanel()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs bg-white"><option value="">Semua Desa/Kelurahan</option></select>
+                                    </div>
+                                    <div id="kepuasan-kritik-list" class="space-y-2 max-h-80 overflow-y-auto"></div>
+                                </div>
+                            </div>
                         </div>
                     </section>
                     
@@ -1166,34 +1233,25 @@
     </div>
 
     <div id="live-chat-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden flex flex-col shadow-2xl border border-slate-200 h-[500px]">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden flex flex-col shadow-2xl border border-slate-200 h-[560px]">
             <div class="p-4 bg-gradient-to-r from-emerald-800 to-teal-900 text-white flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-headset"></i>
-                    </div>
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold"><i class="fa-solid fa-headset"></i></div>
                     <div>
-                        <h3 class="font-bold text-sm">Live Chat • Super Admin</h3>
-                        <p class="text-[10px] text-emerald-200">Online • Siap Membantu</p>
+                        <h3 id="chat-modal-title" class="font-bold text-sm">Live Chat • Super Admin</h3>
+                        <p id="chat-modal-subtitle" class="text-[10px] text-emerald-200">Pesan pribadi dan terlindungi</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeLiveChatModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-red-500 transition flex items-center justify-center text-white">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <button type="button" onclick="closeLiveChatModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-red-500 transition flex items-center justify-center text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 custom-scrollbar text-xs">
-                <div class="flex items-start gap-2">
-                    <div class="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold shrink-0">SA</div>
-                    <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm text-slate-800 max-w-[80%]">
-                        Halo! Selamat datang di Layanan Bantuan SI-POSBANKUM. Ada yang dapat kami bantu terkait administrasi pos bantuan hukum desa?
-                    </div>
-                </div>
+            <div id="chat-admin-toolbar" class="hidden px-3 py-2 bg-slate-50 border-b border-slate-200">
+                <div class="text-[10px] font-bold text-slate-500">INBOX PARALEGAL — Hanya Super Admin yang dapat membaca seluruh pesan</div>
             </div>
-            <form onsubmit="handleChatSend(event)" class="p-3 bg-white border-t border-slate-200 flex gap-2">
-                <input type="text" id="chat-input-msg" required placeholder="Tulis pesan ke Super Admin..." class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
-                <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs transition shadow shrink-0">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
+            <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 custom-scrollbar text-xs"></div>
+            <form id="chat-send-form" onsubmit="handleChatSend(event)" class="p-3 bg-white border-t border-slate-200 flex gap-2">
+                <select id="chat-recipient" class="hidden w-44 border border-slate-300 rounded-xl px-2 py-2 text-[11px] outline-none focus:ring-2 focus:ring-emerald-500 bg-white"></select>
+                <input type="text" id="chat-input-msg" required maxlength="2000" placeholder="Tulis pesan ke Super Admin..." class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+                <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs transition shadow shrink-0"><i class="fa-solid fa-paper-plane"></i></button>
             </form>
         </div>
     </div>
@@ -1220,9 +1278,17 @@
         window.databaseKasus = []; window.databasePenyuluhan = []; window.databaseBerita = []; window.databaseParalegal = []; window.databaseKepuasan = [];
         window.dashboardSummary = null;
         async function apiRequest(action, payload = {}) {
-            if (!window.SIPOSBANKUM_API_URL || window.SIPOSBANKUM_API_URL.includes('PASTE_')) throw new Error('API belum dikonfigurasi. Isi SIPOSBANKUM_API_URL dengan URL Web App Google Apps Script.');
-            const response = await fetch(window.SIPOSBANKUM_API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({action, token:window.siposToken, payload}) });
-            const result = await response.json(); if (!result.ok) throw new Error(result.message || 'Permintaan API gagal.'); return result;
+            if (!window.SIPOSBANKUM_API_URL || window.SIPOSBANKUM_API_URL.includes('PASTE_')) throw new Error('API belum dikonfigurasi. Isi URL Web App Google Apps Script.');
+            let response;
+            try {
+                response = await fetch(window.SIPOSBANKUM_API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({action, token:window.siposToken, payload}) });
+            } catch (networkErr) {
+                throw new Error('Tidak dapat terhubung ke server Google Apps Script. Pastikan Web App sudah di-deploy sebagai Web App, akses "Anyone", dan URL /exec yang digunakan benar.');
+            }
+            let result;
+            try { result = await response.json(); } catch (_) { throw new Error('Server mengembalikan respons yang bukan JSON. Pastikan deployment Google Apps Script menggunakan versi terbaru.'); }
+            if (!result.ok) throw new Error(result.message || 'Permintaan API gagal.');
+            return result;
         }
         async function loadPublicDashboard() { const r=await apiRequest('publicContent'); window.dashboardSummary=r.data.stats||{}; window.databaseParalegal=r.data.stats?.paralegal||[]; window.databaseBerita=r.data.berita||[]; updateDashboardStatsAndCharts(); renderParalegalGrid(); if(typeof renderBeritaList==='function') renderBeritaList(); }
         async function loadInternalData() { const r=await apiRequest('internalDashboard'); window.dashboardSummary=r.data.summary||null; window.databaseKasus=r.data.kasus||[]; window.databasePenyuluhan=r.data.penyuluhan||[]; window.databaseBerita=r.data.berita||[]; window.databaseParalegal=r.data.paralegal||[]; window.databaseKepuasan=r.data.kepuasan||[]; }
@@ -1234,22 +1300,77 @@
         let chartPenyuluhanInstance = null;
         let chartTrenInstance = null;
 
-        function openLiveChatModal() { document.getElementById('live-chat-modal').classList.remove('hidden'); }
-        function closeLiveChatModal() { document.getElementById('live-chat-modal').classList.add('hidden'); }
-        function handleChatSend(e) {
-            e.preventDefault();
-            const input = document.getElementById('chat-input-msg');
-            const container = document.getElementById('chat-messages-container');
-            const txt = input.value.trim();
-            if (!txt) return;
-            container.innerHTML += `<div class="flex items-start gap-2 justify-end"><div class="bg-emerald-700 text-white p-2.5 rounded-2xl shadow-sm max-w-[80%]">${escapeHtml(txt)}</div></div>`;
-            input.value = '';
-            container.scrollTop = container.scrollHeight;
-            setTimeout(() => {
-                container.innerHTML += `<div class="flex items-start gap-2"><div class="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold shrink-0 text-[10px]">SA</div><div class="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm text-slate-800 max-w-[80%]">Halo, pesan Anda telah diterima Super Admin Kabupaten Tanah Laut. Kami akan segera menindaklanjuti.</div></div>`;
-                container.scrollTop = container.scrollHeight;
-            }, 800);
+        let chatRefreshTimer = null;
+        let chatSelectedRecipient = '';
+        async function openLiveChatModal() {
+            const role = window.currentUser?.role || '';
+            if (!['admin','paralegal'].includes(role)) { alert('Live Chat hanya tersedia untuk Super Admin dan Paralegal.'); return; }
+            document.getElementById('live-chat-modal').classList.remove('hidden');
+            const admin = role === 'admin';
+            document.getElementById('chat-modal-title').textContent = admin ? 'Inbox Live Chat • Paralegal' : 'Live Chat • Super Admin';
+            document.getElementById('chat-modal-subtitle').textContent = admin ? 'Super Admin dapat membalas langsung dan balasan akan diterima Paralegal secara live' : 'Percakapan pribadi dengan Super Admin Kabupaten';
+            document.getElementById('chat-admin-toolbar').classList.toggle('hidden', !admin);
+            document.getElementById('chat-send-form').classList.remove('hidden');
+            document.getElementById('chat-recipient').classList.toggle('hidden', !admin);
+            document.getElementById('chat-input-msg').placeholder = admin ? 'Tulis balasan kepada Paralegal...' : 'Tulis pesan ke Super Admin...';
+            await loadChatMessages_();
+            clearInterval(chatRefreshTimer);
+            chatRefreshTimer = setInterval(loadChatMessages_, 3000);
         }
+        function closeLiveChatModal() { document.getElementById('live-chat-modal').classList.add('hidden'); clearInterval(chatRefreshTimer); chatRefreshTimer=null; }
+        function selectChatRecipient(username){
+            chatSelectedRecipient=String(username||'').trim().toLowerCase();
+            const sel=document.getElementById('chat-recipient'); if(sel) sel.value=chatSelectedRecipient;
+            loadChatMessages_();
+        }
+        async function loadChatMessages_() {
+            const container=document.getElementById('chat-messages-container'); if(!container || !window.currentUser) return;
+            try {
+                const r=await apiRequest('getChat',{}); const items=r.data?.items||[];
+                const admin=window.currentUser.role==='admin';
+                if(admin){
+                    const people={};
+                    items.filter(x=>String(x.senderRole||'')==='paralegal').forEach(x=>{ people[x.senderUsername]={username:x.senderUsername,name:x.senderName||x.senderUsername,desa:x.senderDesa||'-'}; });
+                    const sel=document.getElementById('chat-recipient');
+                    if(sel){
+                        const previous=chatSelectedRecipient||sel.value;
+                        sel.innerHTML='<option value="">-- Pilih Paralegal --</option>'+Object.values(people).sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(x=>`<option value="${escapeHtml(x.username)}">${escapeHtml(x.name)} • ${escapeHtml(x.desa)}</option>`).join('');
+                        if(previous && people[previous]) { sel.value=previous; chatSelectedRecipient=previous; }
+                        sel.onchange=()=>selectChatRecipient(sel.value);
+                    }
+                    if(!items.length){ container.innerHTML='<div class="h-full flex items-center justify-center text-center text-slate-400 text-xs">Belum ada pesan Live Chat.</div>'; return; }
+                    const filtered=chatSelectedRecipient ? items.filter(x=>String(x.senderUsername||'')===chatSelectedRecipient || String(x.recipientUsername||'')===chatSelectedRecipient) : items;
+                    if(!filtered.length){ container.innerHTML='<div class="h-full flex items-center justify-center text-center text-slate-400 text-xs">Pilih Paralegal untuk melihat percakapan.</div>'; return; }
+                    container.innerHTML=filtered.map(x=>{
+                        const mine=String(x.senderRole||'')==='admin';
+                        const label=mine?'Super Admin':`${escapeHtml(x.senderName||x.senderUsername||'Paralegal')} • ${escapeHtml(x.senderDesa||'-')}`;
+                        const bubble=mine?'bg-emerald-700 text-white':'bg-white border border-slate-200 text-slate-800';
+                        return `<div class="flex items-start gap-2 ${mine?'justify-end':''}"><div class="max-w-[82%]"><div class="text-[9px] text-slate-400 mb-1 ${mine?'text-right':''}">${label}</div><div class="${bubble} p-2.5 rounded-2xl shadow-sm">${escapeHtml(x.message||'')}</div><div class="text-[9px] text-slate-400 mt-1 ${mine?'text-right':''}">${escapeHtml(formatDateTime_(x.createdAt||''))}</div></div></div>`;
+                    }).join('');
+                } else {
+                    if(!items.length){ container.innerHTML='<div class="h-full flex items-center justify-center text-center text-slate-400 text-xs">Belum ada pesan. Silakan kirim pesan kepada Super Admin.</div>'; return; }
+                    container.innerHTML=items.map(x=>{
+                        const mine=String(x.senderUsername||'')===String(window.currentUser.username||'');
+                        const label=mine?'Anda':'Super Admin';
+                        const bubble=mine?'bg-emerald-700 text-white':'bg-white border border-slate-200 text-slate-800';
+                        return `<div class="flex items-start gap-2 ${mine?'justify-end':''}"><div class="max-w-[82%]"><div class="text-[9px] text-slate-400 mb-1 ${mine?'text-right':''}">${label}</div><div class="${bubble} p-2.5 rounded-2xl shadow-sm">${escapeHtml(x.message||'')}</div><div class="text-[9px] text-slate-400 mt-1 ${mine?'text-right':''}">${escapeHtml(formatDateTime_(x.createdAt||''))}</div></div></div>`;
+                    }).join('');
+                }
+                container.scrollTop=container.scrollHeight;
+            } catch(e) { container.innerHTML=`<div class="p-3 rounded-xl bg-red-50 text-red-700 text-xs">${escapeHtml(e.message||'Gagal memuat Live Chat.')}</div>`; }
+        }
+        async function handleChatSend(e) {
+            e.preventDefault();
+            const role=window.currentUser?.role;
+            if(!['admin','paralegal'].includes(role)) return;
+            const input=document.getElementById('chat-input-msg'); const txt=input.value.trim(); if(!txt) return;
+            const recipient=role==='admin' ? String(document.getElementById('chat-recipient')?.value||chatSelectedRecipient||'').trim().toLowerCase() : 'superadmin';
+            if(role==='admin' && !recipient){ alert('Pilih Paralegal yang akan menerima balasan.'); return; }
+            try { input.disabled=true; await apiRequest('sendChat',{message:txt,recipientUsername:recipient}); input.value=''; await loadChatMessages_(); }
+            catch(err){ alert(err.message||'Pesan gagal dikirim.'); }
+            finally { input.disabled=false; input.focus(); }
+        }
+        function formatDateTime_(value){ try { const d=new Date(value); return isNaN(d.getTime())?String(value||''):d.toLocaleString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); } catch(_){ return String(value||''); } }
 
         function loadLocalKasus() {
         }
@@ -1423,6 +1544,15 @@
                         : true;
                 el.classList.toggle('hidden', !shouldShow);
             });
+
+            const layananGroup = document.getElementById('menu-group-layanan');
+            const adminGroup = document.getElementById('menu-group-administrasi');
+            const akunGroup = document.getElementById('menu-group-akun');
+            if (layananGroup) layananGroup.classList.toggle('hidden', isGuestView);
+            if (adminGroup) adminGroup.classList.toggle('hidden', role !== 'admin');
+            if (akunGroup) akunGroup.classList.toggle('hidden', isGuestView);
+            const chatBtn = document.querySelector('button[onclick="openLiveChatModal()"]');
+            if (chatBtn) { const chatAllowed=['admin','paralegal'].includes(role); chatBtn.classList.toggle('hidden', !chatAllowed); chatBtn.innerHTML = role==='admin' ? '<i class="fa-solid fa-inbox"></i> Inbox Live Chat Paralegal' : '<i class="fa-solid fa-comments"></i> Live Chat ke Super Admin'; }
         }
 
         const SESSION_TOKEN_KEY = 'siposbankum.sessionToken';
@@ -1974,6 +2104,7 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.className = "tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3";
             });
+            applyMenuVisibility();
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
             const activeBtn = document.getElementById(`tab-btn-${tabId}`);
             if (activeBtn) activeBtn.className = "tab-btn w-full text-left px-3.5 py-3 rounded-xl text-emerald-900 bg-emerald-50 font-bold transition flex items-center gap-3";
@@ -1993,6 +2124,9 @@
                 setupSettingProfileForm();
             } else if (tabId === 'kepuasan') {
                 setupKepuasanDropdowns();
+                const adminPanel=document.getElementById('kepuasan-admin-panel');
+                if (window.currentUser?.role === 'admin') renderKepuasanAdminPanel();
+                else if (adminPanel) adminPanel.classList.add('hidden');
             } else if (tabId === 'dashboard') {
                 updateDashboardStatsAndCharts();
             } else if (tabId === 'jumlah-kasus') {
@@ -2116,6 +2250,27 @@
             const label=document.getElementById('rating-label'); if(label) label.textContent=`${val} Bintang - ${labels[val-1]}`;
         }
         function restoreRatingPreview(){ const val=Number(document.getElementById('kepuasan-rating')?.value||0); if(val) previewRating(val); else { const stars=document.querySelectorAll('#star-container i'); stars.forEach(s=>{s.classList.remove('text-amber-400');s.classList.add('text-slate-300');}); const label=document.getElementById('rating-label'); if(label) label.textContent='Pilih Bintang'; } }
+
+        let chartKepuasanAdminInstance = null;
+        function renderKepuasanAdminPanel(){
+            const panel=document.getElementById('kepuasan-admin-panel');
+            if(!panel || window.currentUser?.role!=='admin') return;
+            panel.classList.remove('hidden');
+            const rows=(window.databaseKepuasan||[]).filter(x=>x && (x.rating>=1&&x.rating<=5));
+            const total=rows.length; const avg=total?rows.reduce((n,x)=>n+Number(x.rating||0),0)/total:0;
+            const positive=total?Math.round(rows.filter(x=>Number(x.rating)>=4).length/total*100):0;
+            document.getElementById('kepuasan-admin-rating').textContent=avg.toFixed(2)+' / 5';
+            document.getElementById('kepuasan-admin-responden').textContent=String(total);
+            document.getElementById('kepuasan-admin-positif').textContent=positive+'%';
+            const counts=[1,2,3,4,5].map(n=>rows.filter(x=>Number(x.rating)===n).length);
+            const canvas=document.getElementById('chartKepuasanAdmin');
+            if(canvas){ if(chartKepuasanAdminInstance) chartKepuasanAdminInstance.destroy(); chartKepuasanAdminInstance=new Chart(canvas,{type:'bar',data:{labels:['1⭐','2⭐','3⭐','4⭐','5⭐'],datasets:[{label:'Jumlah Responden',data:counts,backgroundColor:'#f59e0b'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}); }
+            const byKec={}; rows.forEach(x=>{const k=String(x.kecamatan||'Tidak diisi').trim()||'Tidak diisi'; if(!byKec[k])byKec[k]={n:0,sum:0};byKec[k].n++;byKec[k].sum+=Number(x.rating||0);});
+            const kecBody=document.getElementById('kepuasan-kecamatan-tbody'); if(kecBody) kecBody.innerHTML=Object.entries(byKec).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr class="border-t border-slate-100"><td class="p-2 font-semibold">${escapeHtml(k)}</td><td class="p-2 text-center">${v.n}</td><td class="p-2 text-center font-bold">${(v.sum/v.n).toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="3" class="p-3 text-center text-slate-400">Belum ada data.</td></tr>';
+            const ds=document.getElementById('kepuasan-admin-desa-filter'); if(ds){ const current=ds.value; const desaList=[...new Set(rows.map(x=>String(x.desa||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id')); ds.innerHTML='<option value="">Semua Desa/Kelurahan</option>'+desaList.map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join(''); ds.value=current; }
+            const selected=ds?.value||''; const kritikRows=rows.filter(x=>!selected || String(x.desa||'')===selected).sort((a,b)=>String(b.createdAt||b.tanggal||'').localeCompare(String(a.createdAt||a.tanggal||'')));
+            const list=document.getElementById('kepuasan-kritik-list'); if(list) list.innerHTML=kritikRows.map(x=>`<div class="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div class="font-bold text-slate-800 text-xs">${escapeHtml(x.nama||'Anonim')} • ${escapeHtml(x.desa||'Desa tidak diisi')} • ${escapeHtml(x.kecamatan||'Kecamatan tidak diisi')}</div><div class="text-amber-500 font-bold text-xs">${'★'.repeat(Number(x.rating||0))}${'☆'.repeat(5-Number(x.rating||0))}</div></div><p class="text-xs text-slate-600 mt-2 whitespace-pre-wrap">${escapeHtml(x.kritik||'Tidak ada kritik/saran.')}</p><div class="text-[9px] text-slate-400 mt-2">${escapeHtml(formatDateTime_(x.createdAt||x.tanggal||''))}</div></div>`).join('')||'<div class="text-center text-xs text-slate-400 p-4">Belum ada kritik dan saran.</div>';
+        }
 
         async function updateTableCaseStatus(noReg,newStatus){try{await apiRequest('updateCaseStatus',{noReg,statusKasus:newStatus});await loadInternalData();updateDashboardStatsAndCharts();renderJumlahKasusTable();}catch(e){alert(e.message);}}
 
