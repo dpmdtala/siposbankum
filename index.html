@@ -1950,9 +1950,9 @@
             tbody.innerHTML = data.length ? data.map((x,i) => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50">
                     <td class="p-2">${i+1}</td><td class="p-2">${formatDateOnly_(x.tanggal)}</td><td class="p-2">${x.kecamatan || '-'}</td><td class="p-2">${x.desa || '-'}</td><td class="p-2 font-semibold">${x.tema || '-'}</td><td class="p-2">${x.petugas || '-'}</td><td class="p-2 text-center font-bold">${x.jumlahPeserta || 0}</td><td class="p-2">${x.status || '-'}</td><td class="p-2">${x.fotoUrl ? `<img data-drive-url="${escapeBeritaHtml(x.fotoUrl)}" src="${escapeBeritaHtml(x.fotoUrl)}" class="w-14 h-10 object-cover rounded-lg border border-slate-200" alt="Dokumentasi">` : '<span class="text-slate-300">-</span>'}</td><td class="p-2 text-center">${(['admin','paralegal'].includes(window.currentUser?.role)) ? `<div class="flex items-center justify-center gap-1.5 flex-wrap">
-                        <button type="button" onclick='openPenyuluhanViewModal(${JSON.stringify(x.createdAt || x.id || x.timestamp || '')}, ${i})' title="Lihat detail kegiatan" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-bold shadow-sm"><i class="fa-solid fa-eye"></i> Lihat</button>
-                        <button type="button" onclick='printPenyuluhan(${JSON.stringify(x.createdAt || x.id || x.timestamp || '')}, ${i})' title="Print kegiatan" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-bold shadow-sm"><i class="fa-solid fa-print"></i> Print</button>
-                        <button type="button" onclick='openPenyuluhanEditModal(${JSON.stringify(x.createdAt || x.id || x.timestamp || '')}, ${i})' title="Edit kegiatan" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold shadow-sm"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                        <button type="button" onclick='openPenyuluhanViewModal(${JSON.stringify(x.noReg || x.createdAt || x.id || x.timestamp || '')}, ${i})' title="Lihat detail kegiatan" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-bold shadow-sm"><i class="fa-solid fa-eye"></i> Lihat</button>
+                        <button type="button" onclick='printPenyuluhan(${JSON.stringify(x.noReg || x.createdAt || x.id || x.timestamp || '')}, ${i})' title="Print kegiatan" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-bold shadow-sm"><i class="fa-solid fa-print"></i> Print</button>
+                        <button type="button" onclick='openPenyuluhanEditModal(${JSON.stringify(x.noReg || x.createdAt || x.id || x.timestamp || '')}, ${i})' title="Edit kegiatan" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold shadow-sm"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
                     </div>` : '<span class="text-slate-300">-</span>'}</td>
                 </tr>`).join('') : '<tr><td colspan="10" class="p-8 text-center text-slate-400">Belum ada data kegiatan penyuluhan.</td></tr>';
             if (summary) summary.textContent = `${data.length} kegiatan tercatat${data.length ? ` • ${data.reduce((n,x)=>n+Number(x.jumlahPeserta||0),0)} peserta` : ''}.`;
@@ -1963,7 +1963,7 @@
 
         function getPenyuluhanRecord_(recordKey, rowIndex){
             const data = window.databasePenyuluhan || [];
-            let item = data.find(x => String(x.createdAt || x.id || x.timestamp || '') === String(recordKey || ''));
+            let item = data.find(x => String(x.noReg || x.createdAt || x.id || x.timestamp || '') === String(recordKey || ''));
             if (!item && Number.isInteger(Number(rowIndex))) item = data[Number(rowIndex)];
             return item || null;
         }
@@ -2008,7 +2008,7 @@
             const role = window.currentUser?.role || '';
             if (!['admin','paralegal'].includes(role)) { alert('Akses edit kegiatan penyuluhan hanya untuk Super Admin atau Paralegal.'); return; }
             const data = window.databasePenyuluhan || [];
-            let item = data.find(x => String(x.createdAt || x.id || x.timestamp || '') === String(recordKey || ''));
+            let item = data.find(x => String(x.noReg || x.createdAt || x.id || x.timestamp || '') === String(recordKey || ''));
             if (!item && Number.isInteger(Number(rowIndex))) item = data[Number(rowIndex)];
             if (!item) { alert('Data kegiatan penyuluhan tidak ditemukan. Silakan Refresh data terlebih dahulu.'); return; }
             const esc = v => escapeHtml(String(v ?? ''));
@@ -2020,7 +2020,7 @@
             const status = item.status || 'Terlaksana';
             const tema = item.tema || '';
             body.innerHTML = `
-                <form id="edit-penyuluhan-form" class="space-y-4" onsubmit="submitEditPenyuluhan(event, ${JSON.stringify(item.createdAt || item.id || item.timestamp || '')}, ${Number(rowIndex)})">
+                <form id="edit-penyuluhan-form" class="space-y-4" onsubmit="submitEditPenyuluhan(event, ${JSON.stringify(item.noReg || item.createdAt || item.id || item.timestamp || '')}, ${Number(rowIndex)})">
                     <div class="rounded-2xl bg-teal-50 border border-teal-200 p-3 text-xs text-teal-900">
                         <b>Edit Kegiatan Penyuluhan</b><br><span>Periksa kembali seluruh data sebelum menyimpan perubahan.</span>
                     </div>
@@ -2068,7 +2068,7 @@
             if(!original){alert('Data penyuluhan tidak ditemukan.');return;}
             let file=null; const input=document.getElementById('edit-penyuluhan-foto'); if(input?.files?.[0]) file=await readFileAsPayload(input.files[0]);
             const payload={
-                recordKey: recordKey || original.createdAt || original.id || original.timestamp || '',
+                recordKey: recordKey || original.noReg || original.createdAt || original.id || original.timestamp || '',
                 originalRecord: original,
                 tanggal:document.getElementById('edit-penyuluhan-tanggal').value,
                 kecamatan:document.getElementById('edit-penyuluhan-kecamatan').value,
