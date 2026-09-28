@@ -793,6 +793,11 @@
                                             <input type="file" id="berita-foto" accept="image/*" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-white">
                                         </div>
                                         <div class="md:col-span-2">
+                                            <label class="block text-xs font-bold text-slate-700 mb-1"><i class="fa-brands fa-youtube text-red-600 mr-1"></i>Link Video YouTube</label>
+                                            <input type="url" id="berita-youtube" maxlength="500" placeholder="Contoh: https://www.youtube.com/watch?v=XXXXXXXXXXX" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500">
+                                            <p class="text-[10px] text-slate-500 mt-1">Thumbnail video akan dibuat otomatis dari link YouTube dan tampil pada kartu berita.</p>
+                                        </div>
+                                        <div class="md:col-span-2">
                                             <label class="block text-xs font-bold text-slate-700 mb-1">Isi Berita / Uraian Kegiatan <span class="text-red-500">*</span></label>
                                             <textarea id="berita-isi" required rows="6" maxlength="10000" placeholder="Tuliskan informasi berita atau uraian kegiatan paralegal..." class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm outline-none resize-y focus:ring-2 focus:ring-amber-500"></textarea>
                                         </div>
@@ -1409,26 +1414,8 @@
             if (!result.ok) throw new Error(result.message || 'Permintaan API gagal.');
             return result;
         }
-        async function loadPublicDashboard() { const r=await apiRequest('publicContent'); window.dashboardSummary=r.data.stats||{}; window.sharedPenyuluhanPerKecamatan=r.data.stats?.penyuluhanPerKecamatan||{}; sharedPenyuluhanLoadedAt=Date.now(); window.databaseKasus=[]; window.databasePenyuluhan=[]; window.databaseKepuasan=r.data.stats?.kepuasanPublik?.records||[]; window.databaseParalegal=r.data.stats?.paralegal||[]; window.databaseBerita=r.data.berita||[]; updateDashboardStatsAndCharts(); renderParalegalGrid(); if(typeof renderBeritaList==='function') renderBeritaList(); }
-        window.sharedPenyuluhanPerKecamatan = {};
-        let sharedPenyuluhanLoadedAt = 0;
-        async function loadSharedPenyuluhanForChart_(force=false) {
-            const now = Date.now();
-            if (!force && now - sharedPenyuluhanLoadedAt < 10000 && Object.keys(window.sharedPenyuluhanPerKecamatan || {}).length) return;
-            try {
-                const r = await apiRequest('publicContent');
-                const stats = r?.data?.stats || {};
-                const aggregate = stats.penyuluhanPerKecamatan || {};
-                if (aggregate && typeof aggregate === 'object') {
-                    window.sharedPenyuluhanPerKecamatan = aggregate;
-                    sharedPenyuluhanLoadedAt = now;
-                    if (window.currentUser && ['admin','paralegal'].includes(window.currentUser.role)) updateDashboardStatsAndCharts();
-                }
-            } catch (err) {
-                console.warn('Agregat penyuluhan bersama gagal dimuat:', err);
-            }
-        }
-        async function loadInternalData() { const r=await apiRequest('internalDashboard'); window.dashboardSummary=r.data.summary||{}; window.databaseKasus=Array.isArray(r.data.kasus)?r.data.kasus:[]; window.databasePenyuluhan=Array.isArray(r.data.penyuluhan)?r.data.penyuluhan:[]; window.databaseBerita=Array.isArray(r.data.berita)?r.data.berita:[]; window.databaseParalegal=Array.isArray(r.data.paralegal)?r.data.paralegal:[]; window.databaseKepuasan=Array.isArray(r.data.kepuasan)?r.data.kepuasan:[]; const scope=document.getElementById('dashboard-scope-label'); if(scope) scope.textContent=window.currentUser?.role==='admin'?'Rekapitulasi seluruh data kasus dan pelayanan Posbankum Desa/Kelurahan se-Kabupaten Tanah Laut.':'Rekapitulasi kasus dan pelayanan Posbankum pada desa/kelurahan yang menjadi kewenangan Paralegal Anda.'; loadSharedPenyuluhanForChart_(false); }
+        async function loadPublicDashboard() { const r=await apiRequest('publicContent'); window.dashboardSummary=r.data.stats||{}; window.databaseKasus=[]; window.databasePenyuluhan=[]; window.databaseKepuasan=r.data.stats?.kepuasanPublik?.records||[]; window.databaseParalegal=r.data.stats?.paralegal||[]; window.databaseBerita=r.data.berita||[]; updateDashboardStatsAndCharts(); renderParalegalGrid(); if(typeof renderBeritaList==='function') renderBeritaList(); }
+        async function loadInternalData() { const r=await apiRequest('internalDashboard'); window.dashboardSummary=r.data.summary||{}; window.databaseKasus=Array.isArray(r.data.kasus)?r.data.kasus:[]; window.databasePenyuluhan=Array.isArray(r.data.penyuluhan)?r.data.penyuluhan:[]; window.databaseBerita=Array.isArray(r.data.berita)?r.data.berita:[]; window.databaseParalegal=Array.isArray(r.data.paralegal)?r.data.paralegal:[]; window.databaseKepuasan=Array.isArray(r.data.kepuasan)?r.data.kepuasan:[]; const scope=document.getElementById('dashboard-scope-label'); if(scope) scope.textContent=window.currentUser?.role==='admin'?'Rekapitulasi seluruh data kasus dan pelayanan Posbankum Desa/Kelurahan se-Kabupaten Tanah Laut.':'Rekapitulasi kasus dan pelayanan Posbankum pada desa/kelurahan yang menjadi kewenangan Paralegal Anda.'; }
         // Chart.js instances kept globally so every refresh can safely destroy
         // the previous chart before creating a new one.
         let chartJenisKasusInstance = null;
@@ -1826,7 +1813,6 @@
                     if (typeof renderBeritaList === 'function') renderBeritaList();
                 } else if (window.siposToken) {
                     await loadInternalData();
-                    await loadSharedPenyuluhanForChart_(true);
                     updateDashboardStatsAndCharts();
                     if (typeof renderJumlahKasusTable === 'function' && document.getElementById('tab-jumlah-kasus') && !document.getElementById('tab-jumlah-kasus').classList.contains('hidden')) renderJumlahKasusTable();
                     if (typeof renderPenyuluhanTable === 'function' && document.getElementById('tab-penyuluhan') && !document.getElementById('tab-penyuluhan').classList.contains('hidden')) renderPenyuluhanTable();
@@ -2288,6 +2274,44 @@
             });
         }
 
+        function getYouTubeId_(url) {
+            const s = String(url || '').trim();
+            if (!s) return '';
+            const patterns = [
+                /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([A-Za-z0-9_-]{11})/i,
+                /youtu\.be\/([A-Za-z0-9_-]{11})/i
+            ];
+            for (const re of patterns) {
+                const m = s.match(re);
+                if (m) return m[1];
+            }
+            return '';
+        }
+
+        function getYouTubeWatchUrl_(url) {
+            const id = getYouTubeId_(url);
+            return id ? `https://www.youtube.com/watch?v=${encodeURIComponent(id)}` : '';
+        }
+
+        function getYouTubeThumbnail_(url) {
+            const id = getYouTubeId_(url);
+            return id ? `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg` : '';
+        }
+
+        function renderYouTubeThumb_(url, title) {
+            const id = getYouTubeId_(url);
+            if (!id) return '';
+            const watchUrl = getYouTubeWatchUrl_(url);
+            const thumb = getYouTubeThumbnail_(url);
+            return `<a href="${escapeBeritaHtml(watchUrl)}" target="_blank" rel="noopener noreferrer" class="group relative block w-full h-48 overflow-hidden bg-black" title="Tonton video di YouTube">
+                <img src="${escapeBeritaHtml(thumb)}" alt="Thumbnail video ${escapeBeritaHtml(title || 'SI-POSBANKUM')}" class="w-full h-full object-cover transition duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${encodeURIComponent(id)}/mqdefault.jpg';">
+                <span class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition">
+                    <span class="w-14 h-14 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition"><i class="fa-solid fa-play ml-1"></i></span>
+                </span>
+                <span class="absolute bottom-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/75 text-white text-[10px] font-extrabold"><i class="fa-brands fa-youtube text-red-400"></i> Tonton di YouTube</span>
+            </a>`;
+        }
+
         function renderBeritaList() {
             const container = document.getElementById('berita-list');
             if (!container) return;
@@ -2295,7 +2319,7 @@
             const category = document.getElementById('filter-berita-kategori')?.value || '';
             let data = [...(window.databaseBerita || [])].sort((a,b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')));
             data = data.filter(x => {
-                const hay = [x.judul,x.kategori,x.kecamatan,x.desa,x.lokasi,x.isi].join(' ').toLowerCase();
+                const hay = [x.judul,x.kategori,x.kecamatan,x.desa,x.lokasi,x.isi,x.youtubeUrl].join(' ').toLowerCase();
                 return (!q || hay.includes(q)) && (!category || x.kategori === category);
             });
             if (!data.length) {
@@ -2303,10 +2327,12 @@
                 return;
             }
             container.innerHTML = data.map(x => {
-                const img = x.fotoUrl ? `<div class="relative w-full h-48 bg-gradient-to-br from-amber-50 to-emerald-50">
+                const youtubeId = getYouTubeId_(x.youtubeUrl || x.youtube || x.videoUrl || '');
+                const videoThumb = youtubeId ? renderYouTubeThumb_(x.youtubeUrl || x.youtube || x.videoUrl, x.judul) : '';
+                const img = videoThumb || (x.fotoUrl ? `<div class="relative w-full h-48 bg-gradient-to-br from-amber-50 to-emerald-50">
                     <img data-drive-url="${escapeBeritaHtml(x.fotoUrl)}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Dokumentasi berita" class="hidden w-full h-48 object-cover">
                     <div data-photo-fallback class="absolute inset-0 flex items-center justify-center text-amber-500"><i class="fa-solid fa-newspaper text-5xl"></i></div>
-                </div>` : `<div class="w-full h-48 bg-gradient-to-br from-amber-50 to-emerald-50 flex items-center justify-center text-amber-500"><i class="fa-solid fa-newspaper text-5xl"></i></div>`;
+                </div>` : `<div class="w-full h-48 bg-gradient-to-br from-amber-50 to-emerald-50 flex items-center justify-center text-amber-500"><i class="fa-solid fa-newspaper text-5xl"></i></div>`);
                 const lokasi = [x.desa, x.kecamatan].filter(Boolean).join(' • ');
                 const excerpt = escapeBeritaHtml(x.isi || '').replace(/\n/g,'<br>');
                 return `<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition">
@@ -2316,6 +2342,7 @@
                         <h4 class="font-extrabold text-slate-800 text-base leading-snug">${escapeBeritaHtml(x.judul)}</h4>
                         ${lokasi ? `<p class="text-[10px] text-slate-500 mt-2"><i class="fa-solid fa-location-dot mr-1 text-emerald-600"></i>${escapeBeritaHtml(lokasi)}${x.lokasi ? ` • ${escapeBeritaHtml(x.lokasi)}` : ''}</p>` : ''}
                         <p class="text-xs text-slate-600 mt-3 leading-relaxed">${excerpt}</p>
+                        ${youtubeId ? `<a href="${escapeBeritaHtml(getYouTubeWatchUrl_(x.youtubeUrl || x.youtube || x.videoUrl))}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-2 text-xs font-extrabold text-red-600 hover:text-red-700"><i class="fa-brands fa-youtube"></i> Tonton video YouTube</a>` : ''}
                         <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between"><span class="text-[10px] text-slate-400">Dipublikasikan oleh <b>${escapeBeritaHtml(x.createdBy || 'Super Admin')}</b></span>${window.currentUser?.role === 'admin' ? `<button type="button" onclick="deleteBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-red-500 hover:text-red-700"><i class="fa-solid fa-trash mr-1"></i>Hapus</button>` : ''}</div>
                     </div>
                 </article>`;
@@ -2324,7 +2351,7 @@
         }
 
         async function deleteBerita(noReg){if(window.currentUser?.role!=='admin')return;if(!confirm('Hapus berita ini?'))return;try{await apiRequest('deleteBerita',{noReg});await loadInternalData();renderBeritaList();}catch(e){alert(e.message);}}
-        async function handleBeritaSubmit(e){e.preventDefault();if(window.currentUser?.role!=='admin'){alert('Hanya Super Admin.');return;}const f=document.getElementById('berita-foto');let file=null;if(f?.files?.[0])file=await readFileAsPayload(f.files[0]);const data={tanggal:document.getElementById('berita-tanggal').value,judul:document.getElementById('berita-judul').value.trim(),kategori:document.getElementById('berita-kategori').value,kecamatan:document.getElementById('berita-kecamatan').value,desa:document.getElementById('berita-desa').value,lokasi:document.getElementById('berita-lokasi').value.trim(),isi:document.getElementById('berita-isi').value.trim(),file};try{await apiRequest('createNews',data);alert('Berita berhasil dipublikasikan.');document.getElementById('form-berita').reset();await loadInternalData();renderBeritaList();}catch(e){alert(e.message);}}
+        async function handleBeritaSubmit(e){e.preventDefault();if(window.currentUser?.role!=='admin'){alert('Hanya Super Admin.');return;}const f=document.getElementById('berita-foto');let file=null;if(f?.files?.[0])file=await readFileAsPayload(f.files[0]);const youtubeUrl=document.getElementById('berita-youtube')?.value.trim()||'';if(youtubeUrl&&!getYouTubeId_(youtubeUrl)){alert('Link YouTube tidak valid. Gunakan link youtube.com/watch?v=... atau youtu.be/...');return;}const data={tanggal:document.getElementById('berita-tanggal').value,judul:document.getElementById('berita-judul').value.trim(),kategori:document.getElementById('berita-kategori').value,kecamatan:document.getElementById('berita-kecamatan').value,desa:document.getElementById('berita-desa').value,lokasi:document.getElementById('berita-lokasi').value.trim(),isi:document.getElementById('berita-isi').value.trim(),youtubeUrl,file};try{await apiRequest('createNews',data);alert('Berita berhasil dipublikasikan.');document.getElementById('form-berita').reset();await loadInternalData();renderBeritaList();}catch(e){alert(e.message);}}
 
         function previewLoginPageImage(e) {
             const file = e.target.files?.[0];
@@ -2911,44 +2938,8 @@
                 const cKep=document.getElementById('chartKepuasan');
                 if(cKep){if(chartKepuasanInstance)chartKepuasanInstance.destroy();chartKepuasanInstance=new Chart(cKep,{type:'bar',data:{labels:['1⭐','2⭐','3⭐','4⭐','5⭐'],datasets:[{label:'Jumlah Penilaian',data:starValues,backgroundColor:'#f59e0b'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
 
-                // Diagram Kegiatan Penyuluhan per Kecamatan menggunakan SATU sumber data
-                // bersama untuk Super Admin dan Paralegal. Prioritasnya adalah agregat publik
-                // kabupaten (seluruh kegiatan), lalu agregat dashboard internal, dan terakhir
-                // fallback ke data penyuluhan yang sedang dimuat di browser.
-                const buildPenyuluhanPerKecamatan_ = (records) => {
-                    const out = {};
-                    (Array.isArray(records) ? records : []).forEach(item => {
-                        const raw = String(item?.kecamatan || '').trim();
-                        if (!raw) return;
-                        const key = Object.keys(REGIONAL_DATA || {}).find(k => k.trim().toLowerCase() === raw.toLowerCase()) || raw;
-                        out[key] = (out[key] || 0) + 1;
-                    });
-                    return out;
-                };
-                const normalizePenyuluhanAggregate_ = (obj) => {
-                    const out = {};
-                    Object.entries(obj || {}).forEach(([k,v]) => {
-                        const raw = String(k || '').trim();
-                        if (!raw) return;
-                        const key = Object.keys(REGIONAL_DATA || {}).find(x => x.trim().toLowerCase() === raw.toLowerCase()) || raw;
-                        const n = Number(v || 0);
-                        if (Number.isFinite(n)) out[key] = (out[key] || 0) + n;
-                    });
-                    return out;
-                };
-                const localPenyuluhan = buildPenyuluhanPerKecamatan_(window.databasePenyuluhan);
-                const internalPenyuluhan = normalizePenyuluhanAggregate_(d.penyuluhanPerKecamatan || {});
-                const sharedPenyuluhan = normalizePenyuluhanAggregate_(window.sharedPenyuluhanPerKecamatan || {});
-                const perKec = Object.keys(sharedPenyuluhan).length
-                    ? sharedPenyuluhan
-                    : (Object.keys(internalPenyuluhan).length ? internalPenyuluhan : localPenyuluhan);
-                const labelsPenyuluhan = Object.keys(REGIONAL_DATA || {});
-                const valuesPenyuluhan = labelsPenyuluhan.map(k => Number(perKec[k] || 0));
                 const c3=document.getElementById('chartPenyuluhan');
-                if(c3){
-                    if(chartPenyuluhanInstance) chartPenyuluhanInstance.destroy();
-                    chartPenyuluhanInstance=new Chart(c3,{type:'bar',data:{labels:labelsPenyuluhan,datasets:[{label:'Kegiatan Penyuluhan',data:valuesPenyuluhan,backgroundColor:'#0f766e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[{id:'sharedPenyuluhanLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const ds=chart.data.datasets[0];const meta=chart.getDatasetMeta(0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);if(!val)return;ctx.save();ctx.fillStyle='#0f172a';ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.fillText(String(val),el.x,el.y-6);ctx.restore();});}}]});
-                }
+                if(c3){if(chartPenyuluhanInstance)chartPenyuluhanInstance.destroy();const perKec=d.penyuluhanPerKecamatan||{};const labelsPenyuluhan=Object.keys(REGIONAL_DATA||{});const valuesPenyuluhan=labelsPenyuluhan.map(k=>Number(perKec[k]||0));chartPenyuluhanInstance=new Chart(c3,{type:'bar',data:{labels:labelsPenyuluhan,datasets:[{label:'Kegiatan Penyuluhan',data:valuesPenyuluhan,backgroundColor:'#0f766e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[{id:'guestPenyuluhanLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const ds=chart.data.datasets[0];const meta=chart.getDatasetMeta(0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);ctx.save();ctx.fillStyle='#0f172a';ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.fillText(String(val),el.x,el.y-6);ctx.restore();});}}]});}
 
                 const c2=document.getElementById('chartTrenKasus');
                 if(c2){if(chartTrenInstance)chartTrenInstance.destroy();const tr=d.trenTahunan||{}; const tren2026=totalKasus; chartTrenInstance=new Chart(c2,{type:'bar',data:{labels:['2024','2025','2026'],datasets:[{label:'Total Kasus Masuk',data:[249,265,tren2026]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
