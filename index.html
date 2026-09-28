@@ -322,7 +322,7 @@
                         <div id="dashboard-kepuasan-hasil" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><p class="text-xs font-bold text-slate-400 uppercase">Jumlah Responden Kepuasan</p><h3 id="public-kepuasan-jumlah" class="text-3xl font-extrabold text-slate-800 mt-1">0 Orang</h3></div>
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><p class="text-xs font-bold text-slate-400 uppercase">Rata-rata Kepuasan</p><h3 id="public-kepuasan-rata" class="text-3xl font-extrabold text-amber-500 mt-1">0.00 ⭐</h3><p id="public-kepuasan-keterangan" class="text-xs font-semibold text-slate-500 mt-1">Belum ada penilaian</p></div>
-                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><p class="text-xs font-bold text-slate-400 uppercase">Kepuasan 4–5 Bintang</p><h3 id="public-kepuasan-positif" class="text-3xl font-extrabold text-emerald-600 mt-1">0%</h3></div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><p class="text-xs font-bold text-slate-400 uppercase">Informasi Kasus Berjalan</p><h3 id="stat-kasus-berjalan" class="text-3xl font-extrabold text-amber-600 mt-1">0 Kasus</h3><p id="stat-kasus-berjalan-persen" class="text-xs font-semibold text-slate-500 mt-1">0% dari total kasus</p></div>
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2811,17 +2811,22 @@
                 const roleKasus=Array.isArray(window.databaseKasus)?window.databaseKasus:[];
                 const roleHasCases=roleKasus.length>0;
                 const roleJenisCount={};
-                const roleMetodeCount={Konsultasi:0,Mediasi:0,Rujukan:0,Dihentikan:0};
+                const roleMetodeCount={Berjalan:0,Konsultasi:0,Mediasi:0,Rujukan:0,Dihentikan:0};
                 roleKasus.forEach(item=>{
                     const jk=String(item?.jenisKasus||item?.jenis||'Lainnya').trim()||'Lainnya';
                     roleJenisCount[jk]=(roleJenisCount[jk]||0)+1;
                     const st=String(item?.statusKasus||item?.status||'').toLowerCase();
-                    if(st.includes('konsultasi')) roleMetodeCount.Konsultasi++;
+                    if(st==='kasus berjalan') roleMetodeCount.Berjalan++;
+                    else if(st.includes('konsultasi')) roleMetodeCount.Konsultasi++;
                     else if(st.includes('mediasi')) roleMetodeCount.Mediasi++;
                     else if(st.includes('rujukan')) roleMetodeCount.Rujukan++;
                     else if(st.includes('dihentikan')) roleMetodeCount.Dihentikan++;
                 });
                 const totalKasus=roleHasCases?roleKasus.length:Number(d.totalKasus||0);
+                const kasusBerjalan=roleHasCases ? roleKasus.filter(x=>String(x?.statusKasus||x?.status||'').trim().toLowerCase()==='kasus berjalan').length : Number(d.kasusBerjalan||0);
+                const persenKasusBerjalan=totalKasus ? ((kasusBerjalan/totalKasus)*100).toFixed(1) : '0.0';
+                setText('stat-kasus-berjalan',kasusBerjalan+' Kasus');
+                setText('stat-kasus-berjalan-persen',persenKasusBerjalan+'% dari total kasus');
                 const jenis=d.jenisKasusAgregat||d.jenisKasus||d.jenisKasusCount||{};
                 const jenisSource=roleHasCases?roleJenisCount:jenis;
                 const jenisLabels=Object.keys(jenisSource);
@@ -2835,9 +2840,9 @@
                 if(cStatus){
                     if(chartStatusInstance)chartStatusInstance.destroy();
                     const vals=roleHasCases
-                        ? [roleMetodeCount.Konsultasi,roleMetodeCount.Mediasi,roleMetodeCount.Rujukan,roleMetodeCount.Dihentikan]
-                        : [Number(d.konsultasi||0),Number(d.mediasi||0),Number(d.rujukan||0),Number(d.dihentikan||0)];
-                    chartStatusInstance=new Chart(cStatus,{type:'bar',data:{labels:['Konsultasi','Mediasi','Rujukan','Dihentikan'],datasets:[{label:'Jumlah Kasus',data:vals,backgroundColor:['#3b82f6','#10b981','#6366f1','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});
+                        ? [roleMetodeCount.Berjalan,roleMetodeCount.Konsultasi,roleMetodeCount.Mediasi,roleMetodeCount.Rujukan,roleMetodeCount.Dihentikan]
+                        : [Number(d.kasusBerjalan||0),Number(d.konsultasi||0),Number(d.mediasi||0),Number(d.rujukan||0),Number(d.dihentikan||0)];
+                    chartStatusInstance=new Chart(cStatus,{type:'bar',data:{labels:['Kasus Berjalan','Konsultasi','Mediasi','Rujukan','Dihentikan'],datasets:[{label:'Jumlah Kasus',data:vals,backgroundColor:['#f59e0b','#3b82f6','#10b981','#6366f1','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});
                 }
 
                 // Kepuasan: gunakan agregat server terlebih dahulu, lalu fallback ke records.
@@ -2883,7 +2888,7 @@
                 setText('public-kepuasan-rata',rata.toFixed(2)+' ⭐');
                 const ketEl=document.getElementById('public-kepuasan-keterangan');
                 if(ketEl){ let ket='Belum ada penilaian'; if(rata>=4.5) ket='Sangat Memuaskan'; else if(rata>=3.5) ket='Memuaskan'; else if(rata>=2.5) ket='Cukup Memuaskan'; else if(rata>=1.5) ket='Kurang Memuaskan'; else if(rata>0) ket='Sangat Tidak Memuaskan'; ketEl.textContent=ket; }
-                setText('public-kepuasan-positif',positif+'%');
+                
                 const cKep=document.getElementById('chartKepuasan');
                 if(cKep){if(chartKepuasanInstance)chartKepuasanInstance.destroy();chartKepuasanInstance=new Chart(cKep,{type:'bar',data:{labels:['1⭐','2⭐','3⭐','4⭐','5⭐'],datasets:[{label:'Jumlah Penilaian',data:starValues,backgroundColor:'#f59e0b'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
 
@@ -2900,9 +2905,10 @@
             let countMediasi = 0;
             let countRujukan = 0;
             let countDihentikan = 0;
+            let countKasusBerjalan = 0;
 
             let jenisKasusCount = { "Perdata - Sengketa Tanah": 0, "Perdata - Waris": 0, "Pidana - Penganiayaan": 0, "Pidana - KDRT": 0, "Lainnya": 0 };
-            let metodeCount = { "Selesai via Konsultasi": 0, "Selesai via Mediasi": 0, "Selesai via Rujukan": 0, "Selesai via Dihentikan": 0 };
+            let metodeCount = { "Kasus Berjalan": 0, "Selesai via Konsultasi": 0, "Selesai via Mediasi": 0, "Selesai via Rujukan": 0, "Selesai via Dihentikan": 0 };
 
             window.databaseKasus.forEach(item => {
                 const status = item.statusKasus || 'Kasus Berjalan';
@@ -2910,6 +2916,7 @@
                 if (status === 'Kasus Selesai via Mediasi') countMediasi++;
                 if (status === 'Kasus Selesai via Rujukan') countRujukan++;
                 if (status === 'Kasus Selesai via Dihentikan') countDihentikan++;
+                if (status === 'Kasus Berjalan') countKasusBerjalan++;
 
                 if (item.jenisKasus && jenisKasusCount[item.jenisKasus] !== undefined) {
                     jenisKasusCount[item.jenisKasus]++;
@@ -2917,7 +2924,8 @@
                     jenisKasusCount["Lainnya"] = (jenisKasusCount["Lainnya"] || 0) + 1;
                 }
 
-                if (status.includes('Konsultasi')) metodeCount["Selesai via Konsultasi"]++;
+                if (status === 'Kasus Berjalan') metodeCount["Kasus Berjalan"]++;
+                else if (status.includes('Konsultasi')) metodeCount["Selesai via Konsultasi"]++;
                 else if (status.includes('Mediasi')) metodeCount["Selesai via Mediasi"]++;
                 else if (status.includes('Rujukan')) metodeCount["Selesai via Rujukan"]++;
                 else if (status.includes('Dihentikan')) metodeCount["Selesai via Dihentikan"]++;
@@ -2928,6 +2936,9 @@
             document.getElementById('stat-mediasi').textContent = countMediasi + ' Kasus';
             document.getElementById('stat-rujukan').textContent = countRujukan + ' Kasus';
             document.getElementById('stat-dihentikan').textContent = countDihentikan + ' Kasus';
+            const persenKasusBerjalan = totalKasus ? ((countKasusBerjalan / totalKasus) * 100).toFixed(1) : '0.0';
+            const berjalanEl=document.getElementById('stat-kasus-berjalan'); if(berjalanEl) berjalanEl.textContent=countKasusBerjalan+' Kasus';
+            const berjalanPctEl=document.getElementById('stat-kasus-berjalan-persen'); if(berjalanPctEl) berjalanPctEl.textContent=persenKasusBerjalan+'% dari total kasus';
 
             let starCounts = [0, 0, 0, 0, 0];
             window.databaseKepuasan.forEach(s => {
