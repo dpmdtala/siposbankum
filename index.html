@@ -1,5 +1,7 @@
 
 
+
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -625,7 +627,7 @@
                                 <table class="w-full text-xs border-collapse">
                                     <thead class="bg-slate-50 text-slate-600">
                                         <tr>
-                                            <th class="p-2 text-left">No.</th><th class="p-2 text-left">Tanggal</th><th class="p-2 text-left">Kecamatan</th><th class="p-2 text-left">Desa/Kelurahan</th><th class="p-2 text-left">Tema</th><th class="p-2 text-left">Paralegal</th><th class="p-2 text-center">Peserta</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Foto</th>
+                                            <th class="p-2 text-left">No.</th><th class="p-2 text-left">Tanggal</th><th class="p-2 text-left">Kecamatan</th><th class="p-2 text-left">Desa/Kelurahan</th><th class="p-2 text-left">Tema</th><th class="p-2 text-left">Paralegal</th><th class="p-2 text-center">Peserta</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Foto</th><th class="p-2 text-center">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody id="penyuluhan-tbody"></tbody>
@@ -1186,6 +1188,16 @@
                 <p id="welcome-popup-desc" class="mt-2 text-sm leading-relaxed text-slate-600"></p>
                 <button type="button" onclick="closeWelcomePopup_()" class="mt-5 w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm">Mulai Menggunakan SI-POSBANKUM</button>
             </div>
+        </div>
+    </div>
+
+    <div id="penyuluhan-edit-modal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[75] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-3xl shadow-2xl border border-slate-200">
+            <div class="px-6 py-5 bg-gradient-to-r from-teal-700 to-emerald-700 text-white flex items-center justify-between">
+                <div><h3 class="font-extrabold text-lg">Edit Kegiatan Penyuluhan</h3><p class="text-xs text-teal-100 mt-1">Perbarui data kegiatan penyuluhan yang sudah tersimpan.</p></div>
+                <button type="button" onclick="closePenyuluhanEditModal()" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="penyuluhan-edit-body" class="p-6 overflow-y-auto max-h-[calc(92vh-90px)]"></div>
         </div>
     </div>
 
@@ -1925,10 +1937,100 @@
             const data = window.databasePenyuluhan || [];
             tbody.innerHTML = data.length ? data.map((x,i) => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50">
-                    <td class="p-2">${i+1}</td><td class="p-2">${x.tanggal || '-'}</td><td class="p-2">${x.kecamatan || '-'}</td><td class="p-2">${x.desa || '-'}</td><td class="p-2 font-semibold">${x.tema || '-'}</td><td class="p-2">${x.petugas || '-'}</td><td class="p-2 text-center font-bold">${x.jumlahPeserta || 0}</td><td class="p-2">${x.status || '-'}</td><td class="p-2">${x.fotoUrl ? `<img data-drive-url="${escapeBeritaHtml(x.fotoUrl)}" src="${escapeBeritaHtml(x.fotoUrl)}" class="w-14 h-10 object-cover rounded-lg border border-slate-200" alt="Dokumentasi">` : '<span class="text-slate-300">-</span>'}</td>
-                </tr>`).join('') : '<tr><td colspan="9" class="p-8 text-center text-slate-400">Belum ada data kegiatan penyuluhan.</td></tr>';
+                    <td class="p-2">${i+1}</td><td class="p-2">${x.tanggal || '-'}</td><td class="p-2">${x.kecamatan || '-'}</td><td class="p-2">${x.desa || '-'}</td><td class="p-2 font-semibold">${x.tema || '-'}</td><td class="p-2">${x.petugas || '-'}</td><td class="p-2 text-center font-bold">${x.jumlahPeserta || 0}</td><td class="p-2">${x.status || '-'}</td><td class="p-2">${x.fotoUrl ? `<img data-drive-url="${escapeBeritaHtml(x.fotoUrl)}" src="${escapeBeritaHtml(x.fotoUrl)}" class="w-14 h-10 object-cover rounded-lg border border-slate-200" alt="Dokumentasi">` : '<span class="text-slate-300">-</span>'}</td><td class="p-2 text-center">${(['admin','paralegal'].includes(window.currentUser?.role)) ? `<button type="button" onclick='openPenyuluhanEditModal(${JSON.stringify(x.createdAt || x.id || x.timestamp || '')}, ${i})' class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold shadow-sm"><i class="fa-solid fa-pen-to-square"></i> Edit</button>` : '<span class="text-slate-300">-</span>'}</td>
+                </tr>`).join('') : '<tr><td colspan="10" class="p-8 text-center text-slate-400">Belum ada data kegiatan penyuluhan.</td></tr>';
             if (summary) summary.textContent = `${data.length} kegiatan tercatat${data.length ? ` • ${data.reduce((n,x)=>n+Number(x.jumlahPeserta||0),0)} peserta` : ''}.`;
             hydrateCounselingPhotos_();
+        }
+
+        function closePenyuluhanEditModal(){ document.getElementById('penyuluhan-edit-modal')?.classList.add('hidden'); }
+
+        function openPenyuluhanEditModal(recordKey, rowIndex) {
+            const role = window.currentUser?.role || '';
+            if (!['admin','paralegal'].includes(role)) { alert('Akses edit kegiatan penyuluhan hanya untuk Super Admin atau Paralegal.'); return; }
+            const data = window.databasePenyuluhan || [];
+            let item = data.find(x => String(x.createdAt || x.id || x.timestamp || '') === String(recordKey || ''));
+            if (!item && Number.isInteger(Number(rowIndex))) item = data[Number(rowIndex)];
+            if (!item) { alert('Data kegiatan penyuluhan tidak ditemukan. Silakan Refresh data terlebih dahulu.'); return; }
+            const esc = v => escapeHtml(String(v ?? ''));
+            const modal = document.getElementById('penyuluhan-edit-modal');
+            const body = document.getElementById('penyuluhan-edit-body');
+            if (!modal || !body) return;
+            const metode = item.metode || 'Sosialisasi';
+            const sasaran = item.sasaran || 'Masyarakat Desa';
+            const status = item.status || 'Terlaksana';
+            const tema = item.tema || '';
+            body.innerHTML = `
+                <form id="edit-penyuluhan-form" class="space-y-4" onsubmit="submitEditPenyuluhan(event, ${JSON.stringify(item.createdAt || item.id || item.timestamp || '')}, ${Number(rowIndex)})">
+                    <div class="rounded-2xl bg-teal-50 border border-teal-200 p-3 text-xs text-teal-900">
+                        <b>Edit Kegiatan Penyuluhan</b><br><span>Periksa kembali seluruh data sebelum menyimpan perubahan.</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Tanggal</label><input id="edit-penyuluhan-tanggal" type="date" value="${esc(item.tanggal)}" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Kecamatan</label><select id="edit-penyuluhan-kecamatan" required onchange="handleEditPenyuluhanKecamatanChange()" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white"></select></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Desa / Kelurahan</label><select id="edit-penyuluhan-desa" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white"></select></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Paralegal</label><input id="edit-penyuluhan-petugas" value="${esc(item.petugas)}" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Tema Penyuluhan</label><select id="edit-penyuluhan-tema" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white">
+                            <option value="">-- Pilih Tema --</option><option value="Akses Bantuan Hukum" ${tema==='Akses Bantuan Hukum'?'selected':''}>Akses Bantuan Hukum</option><option value="Penyelesaian Sengketa" ${tema==='Penyelesaian Sengketa'?'selected':''}>Penyelesaian Sengketa</option><option value="Pertanahan" ${tema==='Pertanahan'?'selected':''}>Pertanahan</option><option value="Waris dan Keluarga" ${tema==='Waris dan Keluarga'?'selected':''}>Waris dan Keluarga</option><option value="Perkawinan" ${tema==='Perkawinan'?'selected':''}>Perkawinan</option><option value="KDRT dan Perlindungan Perempuan/Anak" ${tema==='KDRT dan Perlindungan Perempuan/Anak'?'selected':''}>KDRT dan Perlindungan Perempuan/Anak</option><option value="Perlindungan Hukum Masyarakat Desa" ${tema==='Perlindungan Hukum Masyarakat Desa'?'selected':''}>Perlindungan Hukum Masyarakat Desa</option><option value="Lainnya" ${tema==='Lainnya'?'selected':''}>Lainnya</option>
+                        </select></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Metode</label><select id="edit-penyuluhan-metode" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white"><option value="Sosialisasi" ${metode==='Sosialisasi'?'selected':''}>Sosialisasi</option><option value="Ceramah" ${metode==='Ceramah'?'selected':''}>Ceramah</option><option value="Diskusi / Tanya Jawab" ${metode==='Diskusi / Tanya Jawab'?'selected':''}>Diskusi / Tanya Jawab</option><option value="Simulasi" ${metode==='Simulasi'?'selected':''}>Simulasi</option><option value="Kombinasi" ${metode==='Kombinasi'?'selected':''}>Kombinasi</option></select></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Sasaran Peserta</label><select id="edit-penyuluhan-sasaran" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white"><option value="Masyarakat Desa" ${sasaran==='Masyarakat Desa'?'selected':''}>Masyarakat Desa</option><option value="Perangkat Desa" ${sasaran==='Perangkat Desa'?'selected':''}>Perangkat Desa</option><option value="Kelompok Masyarakat" ${sasaran==='Kelompok Masyarakat'?'selected':''}>Kelompok Masyarakat</option><option value="Pemuda" ${sasaran==='Pemuda'?'selected':''}>Pemuda</option><option value="Perempuan" ${sasaran==='Perempuan'?'selected':''}>Perempuan</option><option value="Pelajar" ${sasaran==='Pelajar'?'selected':''}>Pelajar</option><option value="Lainnya" ${sasaran==='Lainnya'?'selected':''}>Lainnya</option></select></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Jumlah Peserta</label><input id="edit-penyuluhan-jumlah-peserta" type="number" min="1" value="${Number(item.jumlahPeserta||0)}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Laki-laki</label><input id="edit-penyuluhan-laki" type="number" min="0" value="${Number(item.lakiLaki||0)}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Perempuan</label><input id="edit-penyuluhan-perempuan" type="number" min="0" value="${Number(item.perempuan||0)}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Lokasi</label><input id="edit-penyuluhan-lokasi" value="${esc(item.lokasi)}" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Status</label><select id="edit-penyuluhan-status" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white"><option value="Terlaksana" ${status==='Terlaksana'?'selected':''}>Terlaksana</option><option value="Terjadwal" ${status==='Terjadwal'?'selected':''}>Terjadwal</option><option value="Dibatalkan" ${status==='Dibatalkan'?'selected':''}>Dibatalkan</option></select></div>
+                    </div>
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Materi / Uraian Kegiatan</label><textarea id="edit-penyuluhan-materi" required rows="4" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">${esc(item.materi)}</textarea></div>
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Hasil / Tindak Lanjut</label><textarea id="edit-penyuluhan-hasil" rows="3" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">${esc(item.hasil)}</textarea></div>
+                    <div class="rounded-2xl border border-slate-200 p-3"><label class="block text-xs font-bold text-slate-600 mb-1">Ganti Dokumentasi Kegiatan (opsional)</label><input id="edit-penyuluhan-foto" type="file" accept="image/*" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-white">${item.fotoUrl ? `<p class="text-[10px] text-slate-400 mt-2">Foto lama tetap digunakan jika tidak memilih foto baru.</p>` : ''}</div>
+                    <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="closePenyuluhanEditModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Batal</button><button type="submit" class="px-4 py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-xl text-xs"><i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Perubahan</button></div>
+                </form>`;
+            const kec = document.getElementById('edit-penyuluhan-kecamatan');
+            kec.innerHTML = '<option value="">-- Pilih Kecamatan --</option>' + Object.keys(REGIONAL_DATA||{}).map(k=>`<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join('');
+            kec.value = item.kecamatan || '';
+            handleEditPenyuluhanKecamatanChange(item.desa || '');
+            modal.classList.remove('hidden');
+        }
+
+        function handleEditPenyuluhanKecamatanChange(selectedDesa='') {
+            const kec=document.getElementById('edit-penyuluhan-kecamatan'); const desa=document.getElementById('edit-penyuluhan-desa'); if(!kec||!desa)return;
+            const list=REGIONAL_DATA[kec.value]||[];
+            desa.innerHTML='<option value="">-- Pilih Desa / Kelurahan --</option>'+list.map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+            desa.disabled=!list.length; if(selectedDesa) desa.value=selectedDesa;
+        }
+
+        async function submitEditPenyuluhan(event, recordKey, rowIndex) {
+            event.preventDefault();
+            const role=window.currentUser?.role||''; if(!['admin','paralegal'].includes(role)){alert('Akses edit kegiatan penyuluhan hanya untuk Super Admin atau Paralegal.');return;}
+            const jumlah=Number(document.getElementById('edit-penyuluhan-jumlah-peserta').value||0), laki=Number(document.getElementById('edit-penyuluhan-laki').value||0), perempuan=Number(document.getElementById('edit-penyuluhan-perempuan').value||0);
+            if(laki+perempuan>jumlah){alert('Jumlah laki-laki + perempuan tidak boleh melebihi peserta.');return;}
+            const original=(window.databasePenyuluhan||[]).find(x=>String(x.createdAt||x.id||x.timestamp||'')===String(recordKey||'')) || (window.databasePenyuluhan||[])[Number(rowIndex)];
+            if(!original){alert('Data penyuluhan tidak ditemukan.');return;}
+            let file=null; const input=document.getElementById('edit-penyuluhan-foto'); if(input?.files?.[0]) file=await readFileAsPayload(input.files[0]);
+            const payload={
+                recordKey: recordKey || original.createdAt || original.id || original.timestamp || '',
+                originalRecord: original,
+                tanggal:document.getElementById('edit-penyuluhan-tanggal').value,
+                kecamatan:document.getElementById('edit-penyuluhan-kecamatan').value,
+                desa:document.getElementById('edit-penyuluhan-desa').value,
+                petugas:document.getElementById('edit-penyuluhan-petugas').value.trim(),
+                tema:document.getElementById('edit-penyuluhan-tema').value,
+                metode:document.getElementById('edit-penyuluhan-metode').value,
+                sasaran:document.getElementById('edit-penyuluhan-sasaran').value,
+                jumlahPeserta:jumlah,lakiLaki:laki,perempuan:perempuan,
+                lokasi:document.getElementById('edit-penyuluhan-lokasi').value.trim(),
+                materi:document.getElementById('edit-penyuluhan-materi').value.trim(),
+                hasil:document.getElementById('edit-penyuluhan-hasil').value.trim(),
+                status:document.getElementById('edit-penyuluhan-status').value,
+                file
+            };
+            try{
+                await apiRequest('updateCounseling',payload);
+                alert('Data kegiatan penyuluhan berhasil diperbarui.');
+                closePenyuluhanEditModal();
+                await loadInternalData(); renderPenyuluhanTable(); updateDashboardStatsAndCharts();
+            }catch(e){alert(e.message||'Data penyuluhan gagal diperbarui.');}
         }
 
         async function hydrateCounselingPhotos_() {
