@@ -1409,8 +1409,26 @@
             if (!result.ok) throw new Error(result.message || 'Permintaan API gagal.');
             return result;
         }
-        async function loadPublicDashboard() { const r=await apiRequest('publicContent'); window.dashboardSummary=r.data.stats||{}; window.databaseKasus=[]; window.databasePenyuluhan=[]; window.databaseKepuasan=r.data.stats?.kepuasanPublik?.records||[]; window.databaseParalegal=r.data.stats?.paralegal||[]; window.databaseBerita=r.data.berita||[]; updateDashboardStatsAndCharts(); renderParalegalGrid(); if(typeof renderBeritaList==='function') renderBeritaList(); }
-        async function loadInternalData() { const r=await apiRequest('internalDashboard'); window.dashboardSummary=r.data.summary||{}; window.databaseKasus=Array.isArray(r.data.kasus)?r.data.kasus:[]; window.databasePenyuluhan=Array.isArray(r.data.penyuluhan)?r.data.penyuluhan:[]; window.databaseBerita=Array.isArray(r.data.berita)?r.data.berita:[]; window.databaseParalegal=Array.isArray(r.data.paralegal)?r.data.paralegal:[]; window.databaseKepuasan=Array.isArray(r.data.kepuasan)?r.data.kepuasan:[]; const scope=document.getElementById('dashboard-scope-label'); if(scope) scope.textContent=window.currentUser?.role==='admin'?'Rekapitulasi seluruh data kasus dan pelayanan Posbankum Desa/Kelurahan se-Kabupaten Tanah Laut.':'Rekapitulasi kasus dan pelayanan Posbankum pada desa/kelurahan yang menjadi kewenangan Paralegal Anda.'; }
+        async function loadPublicDashboard() { const r=await apiRequest('publicContent'); window.dashboardSummary=r.data.stats||{}; window.sharedPenyuluhanPerKecamatan=r.data.stats?.penyuluhanPerKecamatan||{}; sharedPenyuluhanLoadedAt=Date.now(); window.databaseKasus=[]; window.databasePenyuluhan=[]; window.databaseKepuasan=r.data.stats?.kepuasanPublik?.records||[]; window.databaseParalegal=r.data.stats?.paralegal||[]; window.databaseBerita=r.data.berita||[]; updateDashboardStatsAndCharts(); renderParalegalGrid(); if(typeof renderBeritaList==='function') renderBeritaList(); }
+        window.sharedPenyuluhanPerKecamatan = {};
+        let sharedPenyuluhanLoadedAt = 0;
+        async function loadSharedPenyuluhanForChart_(force=false) {
+            const now = Date.now();
+            if (!force && now - sharedPenyuluhanLoadedAt < 10000 && Object.keys(window.sharedPenyuluhanPerKecamatan || {}).length) return;
+            try {
+                const r = await apiRequest('publicContent');
+                const stats = r?.data?.stats || {};
+                const aggregate = stats.penyuluhanPerKecamatan || {};
+                if (aggregate && typeof aggregate === 'object') {
+                    window.sharedPenyuluhanPerKecamatan = aggregate;
+                    sharedPenyuluhanLoadedAt = now;
+                    if (window.currentUser && ['admin','paralegal'].includes(window.currentUser.role)) updateDashboardStatsAndCharts();
+                }
+            } catch (err) {
+                console.warn('Agregat penyuluhan bersama gagal dimuat:', err);
+            }
+        }
+        async function loadInternalData() { const r=await apiRequest('internalDashboard'); window.dashboardSummary=r.data.summary||{}; window.databaseKasus=Array.isArray(r.data.kasus)?r.data.kasus:[]; window.databasePenyuluhan=Array.isArray(r.data.penyuluhan)?r.data.penyuluhan:[]; window.databaseBerita=Array.isArray(r.data.berita)?r.data.berita:[]; window.databaseParalegal=Array.isArray(r.data.paralegal)?r.data.paralegal:[]; window.databaseKepuasan=Array.isArray(r.data.kepuasan)?r.data.kepuasan:[]; const scope=document.getElementById('dashboard-scope-label'); if(scope) scope.textContent=window.currentUser?.role==='admin'?'Rekapitulasi seluruh data kasus dan pelayanan Posbankum Desa/Kelurahan se-Kabupaten Tanah Laut.':'Rekapitulasi kasus dan pelayanan Posbankum pada desa/kelurahan yang menjadi kewenangan Paralegal Anda.'; loadSharedPenyuluhanForChart_(false); }
         // Chart.js instances kept globally so every refresh can safely destroy
         // the previous chart before creating a new one.
         let chartJenisKasusInstance = null;
@@ -1808,6 +1826,7 @@
                     if (typeof renderBeritaList === 'function') renderBeritaList();
                 } else if (window.siposToken) {
                     await loadInternalData();
+                    await loadSharedPenyuluhanForChart_(true);
                     updateDashboardStatsAndCharts();
                     if (typeof renderJumlahKasusTable === 'function' && document.getElementById('tab-jumlah-kasus') && !document.getElementById('tab-jumlah-kasus').classList.contains('hidden')) renderJumlahKasusTable();
                     if (typeof renderPenyuluhanTable === 'function' && document.getElementById('tab-penyuluhan') && !document.getElementById('tab-penyuluhan').classList.contains('hidden')) renderPenyuluhanTable();
@@ -2892,8 +2911,44 @@
                 const cKep=document.getElementById('chartKepuasan');
                 if(cKep){if(chartKepuasanInstance)chartKepuasanInstance.destroy();chartKepuasanInstance=new Chart(cKep,{type:'bar',data:{labels:['1⭐','2⭐','3⭐','4⭐','5⭐'],datasets:[{label:'Jumlah Penilaian',data:starValues,backgroundColor:'#f59e0b'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
 
+                // Diagram Kegiatan Penyuluhan per Kecamatan menggunakan SATU sumber data
+                // bersama untuk Super Admin dan Paralegal. Prioritasnya adalah agregat publik
+                // kabupaten (seluruh kegiatan), lalu agregat dashboard internal, dan terakhir
+                // fallback ke data penyuluhan yang sedang dimuat di browser.
+                const buildPenyuluhanPerKecamatan_ = (records) => {
+                    const out = {};
+                    (Array.isArray(records) ? records : []).forEach(item => {
+                        const raw = String(item?.kecamatan || '').trim();
+                        if (!raw) return;
+                        const key = Object.keys(REGIONAL_DATA || {}).find(k => k.trim().toLowerCase() === raw.toLowerCase()) || raw;
+                        out[key] = (out[key] || 0) + 1;
+                    });
+                    return out;
+                };
+                const normalizePenyuluhanAggregate_ = (obj) => {
+                    const out = {};
+                    Object.entries(obj || {}).forEach(([k,v]) => {
+                        const raw = String(k || '').trim();
+                        if (!raw) return;
+                        const key = Object.keys(REGIONAL_DATA || {}).find(x => x.trim().toLowerCase() === raw.toLowerCase()) || raw;
+                        const n = Number(v || 0);
+                        if (Number.isFinite(n)) out[key] = (out[key] || 0) + n;
+                    });
+                    return out;
+                };
+                const localPenyuluhan = buildPenyuluhanPerKecamatan_(window.databasePenyuluhan);
+                const internalPenyuluhan = normalizePenyuluhanAggregate_(d.penyuluhanPerKecamatan || {});
+                const sharedPenyuluhan = normalizePenyuluhanAggregate_(window.sharedPenyuluhanPerKecamatan || {});
+                const perKec = Object.keys(sharedPenyuluhan).length
+                    ? sharedPenyuluhan
+                    : (Object.keys(internalPenyuluhan).length ? internalPenyuluhan : localPenyuluhan);
+                const labelsPenyuluhan = Object.keys(REGIONAL_DATA || {});
+                const valuesPenyuluhan = labelsPenyuluhan.map(k => Number(perKec[k] || 0));
                 const c3=document.getElementById('chartPenyuluhan');
-                if(c3){if(chartPenyuluhanInstance)chartPenyuluhanInstance.destroy();const perKec=d.penyuluhanPerKecamatan||{};const labelsPenyuluhan=Object.keys(REGIONAL_DATA||{});const valuesPenyuluhan=labelsPenyuluhan.map(k=>Number(perKec[k]||0));chartPenyuluhanInstance=new Chart(c3,{type:'bar',data:{labels:labelsPenyuluhan,datasets:[{label:'Kegiatan Penyuluhan',data:valuesPenyuluhan,backgroundColor:'#0f766e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[{id:'guestPenyuluhanLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const ds=chart.data.datasets[0];const meta=chart.getDatasetMeta(0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);ctx.save();ctx.fillStyle='#0f172a';ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.fillText(String(val),el.x,el.y-6);ctx.restore();});}}]});}
+                if(c3){
+                    if(chartPenyuluhanInstance) chartPenyuluhanInstance.destroy();
+                    chartPenyuluhanInstance=new Chart(c3,{type:'bar',data:{labels:labelsPenyuluhan,datasets:[{label:'Kegiatan Penyuluhan',data:valuesPenyuluhan,backgroundColor:'#0f766e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[{id:'sharedPenyuluhanLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const ds=chart.data.datasets[0];const meta=chart.getDatasetMeta(0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);if(!val)return;ctx.save();ctx.fillStyle='#0f172a';ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.fillText(String(val),el.x,el.y-6);ctx.restore();});}}]});
+                }
 
                 const c2=document.getElementById('chartTrenKasus');
                 if(c2){if(chartTrenInstance)chartTrenInstance.destroy();const tr=d.trenTahunan||{}; const tren2026=totalKasus; chartTrenInstance=new Chart(c2,{type:'bar',data:{labels:['2024','2025','2026'],datasets:[{label:'Total Kasus Masuk',data:[249,265,tren2026]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
