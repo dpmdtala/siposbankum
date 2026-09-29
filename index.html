@@ -2511,7 +2511,7 @@
             document.getElementById('rating-label').textContent = `${val} Bintang - ${labels[val-1]}`;
         }
 
-        async function handleKepuasanSubmit(e){e.preventDefault();const rating=Number(document.getElementById('kepuasan-rating').value);if(!rating){alert('Silakan pilih penilaian bintang.');return;}try{await apiRequest('createSatisfaction',{nama:document.getElementById('kepuasan-nama').value.trim()||'Anonim',kecamatan:document.getElementById('kepuasan-kecamatan').value,desa:document.getElementById('kepuasan-desa').value,rating,kritik:document.getElementById('kepuasan-kritik').value.trim()});alert('Penilaian berhasil dikirim.');document.getElementById('form-kepuasan').reset();setRating(0);await loadInternalData();updateDashboardStatsAndCharts();}catch(e){alert(e.message);}}
+        async function handleKepuasanSubmit(e){e.preventDefault();const rating=Number(document.getElementById('kepuasan-rating').value);if(!rating){alert('Silakan pilih penilaian bintang.');return;}try{await apiRequest('createSatisfaction',{nama:document.getElementById('kepuasan-nama').value.trim()||'Anonim',kecamatan:document.getElementById('kepuasan-kecamatan').value,desa:document.getElementById('kepuasan-desa').value,rating,kritik:document.getElementById('kepuasan-kritik').value.trim()});alert('Penilaian berhasil dikirim.');document.getElementById('form-kepuasan').reset();setRating(0);if(['guest','public','pimpinan','tamu'].includes(String(window.currentUser?.role||'').toLowerCase())){await loadPublicDashboard();}else{await loadInternalData();}updateDashboardStatsAndCharts();}catch(e){alert(e.message);}}
 
         function scrollToLoginInfo_(sectionId) {
             const target = document.getElementById(sectionId);
