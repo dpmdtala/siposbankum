@@ -296,33 +296,42 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                 <p class="text-xs font-bold text-slate-400 uppercase">Total Kasus Masuk</p>
                                 <h3 id="stat-total-kasus" class="text-3xl font-extrabold text-slate-800 mt-1">0 Kasus</h3>
+                                <p class="text-xs font-semibold text-slate-500 mt-1">100% dari total kasus</p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                                <p class="text-xs font-bold text-slate-400 uppercase">Kasus Berjalan</p>
+                                <h3 id="stat-kasus-berjalan" class="text-3xl font-extrabold text-amber-600 mt-1">0 Kasus</h3>
+                                <p id="stat-kasus-berjalan-persen" class="text-xs font-semibold text-slate-500 mt-1">0% dari total kasus</p>
                             </div>
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                 <p class="text-xs font-bold text-slate-400 uppercase">Selesai via Konsultasi</p>
                                 <h3 id="stat-konsultasi" class="text-3xl font-extrabold text-blue-600 mt-1">0 Kasus</h3>
+                                <p id="stat-konsultasi-persen" class="text-xs font-semibold text-slate-500 mt-1">0% dari total kasus</p>
                             </div>
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                 <p class="text-xs font-bold text-slate-400 uppercase">Selesai via Mediasi</p>
                                 <h3 id="stat-mediasi" class="text-3xl font-extrabold text-emerald-600 mt-1">0 Kasus</h3>
+                                <p id="stat-mediasi-persen" class="text-xs font-semibold text-slate-500 mt-1">0% dari total kasus</p>
                             </div>
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                 <p class="text-xs font-bold text-slate-400 uppercase">Selesai via Rujukan</p>
                                 <h3 id="stat-rujukan" class="text-3xl font-extrabold text-indigo-600 mt-1">0 Kasus</h3>
+                                <p id="stat-rujukan-persen" class="text-xs font-semibold text-slate-500 mt-1">0% dari total kasus</p>
                             </div>
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                 <p class="text-xs font-bold text-slate-400 uppercase">Selesai Dihentikan</p>
                                 <h3 id="stat-dihentikan" class="text-3xl font-extrabold text-slate-600 mt-1">0 Kasus</h3>
+                                <p id="stat-dihentikan-persen" class="text-xs font-semibold text-slate-500 mt-1">0% dari total kasus</p>
                             </div>
                         </div>
 
-                        <div id="dashboard-kepuasan-hasil" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div id="dashboard-kepuasan-hasil" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><p class="text-xs font-bold text-slate-400 uppercase">Jumlah Responden Kepuasan</p><h3 id="public-kepuasan-jumlah" class="text-3xl font-extrabold text-slate-800 mt-1">0 Orang</h3></div>
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><p class="text-xs font-bold text-slate-400 uppercase">Rata-rata Kepuasan</p><h3 id="public-kepuasan-rata" class="text-3xl font-extrabold text-amber-500 mt-1">0.00 ⭐</h3><p id="public-kepuasan-keterangan" class="text-xs font-semibold text-slate-500 mt-1">Belum ada penilaian</p></div>
-                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"><p class="text-xs font-bold text-slate-400 uppercase">Informasi Kasus Berjalan</p><h3 id="stat-kasus-berjalan" class="text-3xl font-extrabold text-amber-600 mt-1">0 Kasus</h3><p id="stat-kasus-berjalan-persen" class="text-xs font-semibold text-slate-500 mt-1">0% dari total kasus</p></div>
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -746,11 +755,11 @@
                                 <div class="flex items-center gap-2 mb-4">
                                     <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center"><i class="fa-solid fa-pen-to-square"></i></div>
                                     <div>
-                                        <h4 class="font-extrabold text-sm text-slate-800">Tambah Berita / Kegiatan</h4>
+                                        <h4 id="berita-form-title" class="font-extrabold text-sm text-slate-800">Tambah Berita / Kegiatan</h4>
                                         <p class="text-[11px] text-slate-500">Menu ini hanya dapat digunakan oleh Super Admin.</p>
                                     </div>
                                 </div>
-                                <form id="form-berita" onsubmit="handleBeritaSubmit(event)" class="space-y-4">
+                                <form id="form-berita" onsubmit="handleBeritaSubmit(event)" class="space-y-4"><input type="hidden" id="berita-edit-noreg" value="">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div class="md:col-span-2">
                                             <label class="block text-xs font-bold text-slate-700 mb-1">Judul Berita / Kegiatan <span class="text-red-500">*</span></label>
@@ -804,7 +813,7 @@
                                     </div>
                                     <div class="flex justify-end gap-2">
                                         <button type="button" onclick="resetBeritaForm()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-bold text-xs hover:bg-white">Reset</button>
-                                        <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow"><i class="fa-solid fa-paper-plane mr-1"></i> Publikasikan Berita</button>
+                                        <button id="berita-submit-btn" type="submit" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow"><i class="fa-solid fa-paper-plane mr-1"></i> Publikasikan Berita</button>
                                     </div>
                                 </form>
                             </div>
@@ -2209,6 +2218,9 @@
         function resetBeritaForm() {
             const form = document.getElementById('form-berita');
             if (form) form.reset();
+            const editNo=document.getElementById('berita-edit-noreg'); if(editNo) editNo.value='';
+            const title=document.getElementById('berita-form-title'); if(title) title.textContent='Tambah Berita / Kegiatan';
+            const submit=document.getElementById('berita-submit-btn'); if(submit) submit.innerHTML='<i class="fa-solid fa-paper-plane mr-1"></i> Publikasikan Berita';
             const tanggal = document.getElementById('berita-tanggal');
             if (tanggal) tanggal.value = new Date().toISOString().slice(0,10);
             const desa = document.getElementById('berita-desa');
@@ -2338,12 +2350,12 @@
                 return `<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition">
                     ${img}
                     <div class="p-5">
-                        <div class="flex flex-wrap items-center gap-2 mb-2"><span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-extrabold">${escapeBeritaHtml(x.kategori || 'Berita')}</span><span class="text-[10px] text-slate-400">${escapeBeritaHtml(x.tanggal || '-')}</span></div>
+                        <div class="flex flex-wrap items-center gap-2 mb-2"><span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-extrabold">${escapeBeritaHtml(x.kategori || 'Berita')}</span><span class="text-[10px] text-slate-400">${escapeBeritaHtml(formatDateOnly_(x.tanggal))}</span></div>
                         <h4 class="font-extrabold text-slate-800 text-base leading-snug">${escapeBeritaHtml(x.judul)}</h4>
                         ${lokasi ? `<p class="text-[10px] text-slate-500 mt-2"><i class="fa-solid fa-location-dot mr-1 text-emerald-600"></i>${escapeBeritaHtml(lokasi)}${x.lokasi ? ` • ${escapeBeritaHtml(x.lokasi)}` : ''}</p>` : ''}
                         <p class="text-xs text-slate-600 mt-3 leading-relaxed">${excerpt}</p>
                         ${youtubeId ? `<a href="${escapeBeritaHtml(getYouTubeWatchUrl_(x.youtubeUrl || x.youtube || x.videoUrl))}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-2 text-xs font-extrabold text-red-600 hover:text-red-700"><i class="fa-brands fa-youtube"></i> Tonton video YouTube</a>` : ''}
-                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between"><span class="text-[10px] text-slate-400">Dipublikasikan oleh <b>${escapeBeritaHtml(x.createdBy || 'Super Admin')}</b></span>${window.currentUser?.role === 'admin' ? `<button type="button" onclick="deleteBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-red-500 hover:text-red-700"><i class="fa-solid fa-trash mr-1"></i>Hapus</button>` : ''}</div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between"><span class="text-[10px] text-slate-400">Dipublikasikan oleh <b>${escapeBeritaHtml(x.createdBy || 'Super Admin')}</b></span>${window.currentUser?.role === 'admin' ? `<div class="flex items-center gap-2"><button type="button" onclick="editBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-amber-600 hover:text-amber-700"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button><button type="button" onclick="deleteBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-red-500 hover:text-red-700"><i class="fa-solid fa-trash mr-1"></i>Hapus</button></div>` : ''}</div>
                     </div>
                 </article>`;
             }).join('');
@@ -2351,7 +2363,27 @@
         }
 
         async function deleteBerita(noReg){if(window.currentUser?.role!=='admin')return;if(!confirm('Hapus berita ini?'))return;try{await apiRequest('deleteBerita',{noReg});await loadInternalData();renderBeritaList();}catch(e){alert(e.message);}}
-        async function handleBeritaSubmit(e){e.preventDefault();if(window.currentUser?.role!=='admin'){alert('Hanya Super Admin.');return;}const f=document.getElementById('berita-foto');let file=null;if(f?.files?.[0])file=await readFileAsPayload(f.files[0]);const youtubeUrl=document.getElementById('berita-youtube')?.value.trim()||'';if(youtubeUrl&&!getYouTubeId_(youtubeUrl)){alert('Link YouTube tidak valid. Gunakan link youtube.com/watch?v=... atau youtu.be/...');return;}const data={tanggal:document.getElementById('berita-tanggal').value,judul:document.getElementById('berita-judul').value.trim(),kategori:document.getElementById('berita-kategori').value,kecamatan:document.getElementById('berita-kecamatan').value,desa:document.getElementById('berita-desa').value,lokasi:document.getElementById('berita-lokasi').value.trim(),isi:document.getElementById('berita-isi').value.trim(),youtubeUrl,file};try{await apiRequest('createNews',data);alert('Berita berhasil dipublikasikan.');document.getElementById('form-berita').reset();await loadInternalData();renderBeritaList();}catch(e){alert(e.message);}}
+        async function editBerita(noReg){
+            if(window.currentUser?.role!=='admin') return;
+            const item=(window.databaseBerita||[]).find(x=>String(x.noReg)===String(noReg));
+            if(!item){alert('Data berita tidak ditemukan.');return;}
+            const form=document.getElementById('form-berita'); if(!form) return;
+            document.getElementById('berita-edit-noreg').value=item.noReg||'';
+            document.getElementById('berita-judul').value=item.judul||'';
+            document.getElementById('berita-tanggal').value=(String(item.tanggal||'').match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/)||[]).slice(1).length===3 ? String(item.tanggal).match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/).slice(1).map((v,i)=>i?String(v).padStart(2,'0'):v).join('-') : '';
+            document.getElementById('berita-kategori').value=item.kategori||'';
+            document.getElementById('berita-kecamatan').value=item.kecamatan||'';
+            handleBeritaKecamatanChange();
+            document.getElementById('berita-desa').value=item.desa||'';
+            document.getElementById('berita-lokasi').value=item.lokasi||'';
+            document.getElementById('berita-youtube').value=item.youtubeUrl||'';
+            document.getElementById('berita-isi').value=item.isi||'';
+            const title=document.getElementById('berita-form-title'); if(title) title.textContent='Edit Berita / Kegiatan';
+            const submit=document.getElementById('berita-submit-btn'); if(submit) submit.innerHTML='<i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Perubahan';
+            form.scrollIntoView({behavior:'smooth',block:'start'});
+        }
+
+        async function handleBeritaSubmit(e){e.preventDefault();if(window.currentUser?.role!=='admin'){alert('Hanya Super Admin.');return;}const f=document.getElementById('berita-foto');let file=null;if(f?.files?.[0])file=await readFileAsPayload(f.files[0]);const youtubeUrl=document.getElementById('berita-youtube')?.value.trim()||'';if(youtubeUrl&&!getYouTubeId_(youtubeUrl)){alert('Link YouTube tidak valid. Gunakan link youtube.com/watch?v=... atau youtu.be/...');return;}const editNoReg=document.getElementById('berita-edit-noreg')?.value.trim()||'';const data={noReg:editNoReg,tanggal:document.getElementById('berita-tanggal').value,judul:document.getElementById('berita-judul').value.trim(),kategori:document.getElementById('berita-kategori').value,kecamatan:document.getElementById('berita-kecamatan').value,desa:document.getElementById('berita-desa').value,lokasi:document.getElementById('berita-lokasi').value.trim(),isi:document.getElementById('berita-isi').value.trim(),youtubeUrl,file};try{await apiRequest(editNoReg?'updateNews':'createNews',data);alert(editNoReg?'Berita berhasil diperbarui.':'Berita berhasil dipublikasikan.');resetBeritaForm();await loadInternalData();renderBeritaList();}catch(e){alert(e.message);}}
 
         function previewLoginPageImage(e) {
             const file = e.target.files?.[0];
@@ -2846,10 +2878,6 @@
                 const d=window.dashboardSummary||{};
                 const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
                 setText('stat-total-kasus',Number(d.totalKasus||0)+' Kasus');
-                setText('stat-konsultasi',Number(d.konsultasi||0)+' Kasus');
-                setText('stat-mediasi',Number(d.mediasi||0)+' Kasus');
-                setText('stat-rujukan',Number(d.rujukan||0)+' Kasus');
-                setText('stat-dihentikan',Number(d.dihentikan||0)+' Kasus');
 
                 // Sumber chart diprioritaskan dari data kasus yang benar-benar dimuat
                 // untuk role aktif. Ini penting agar Paralegal tidak bergantung hanya
@@ -2870,9 +2898,21 @@
                 });
                 const totalKasus=roleHasCases?roleKasus.length:Number(d.totalKasus||0);
                 const kasusBerjalan=roleHasCases ? roleKasus.filter(x=>String(x?.statusKasus||x?.status||'').trim().toLowerCase()==='kasus berjalan').length : Number(d.kasusBerjalan||0);
-                const persenKasusBerjalan=totalKasus ? ((kasusBerjalan/totalKasus)*100).toFixed(1) : '0.0';
+                const pct=(n)=>totalKasus?((Number(n||0)/totalKasus)*100).toFixed(1):'0.0';
+                const konsultasi=roleHasCases?roleMetodeCount.Konsultasi:Number(d.konsultasi||0);
+                const mediasi=roleHasCases?roleMetodeCount.Mediasi:Number(d.mediasi||0);
+                const rujukan=roleHasCases?roleMetodeCount.Rujukan:Number(d.rujukan||0);
+                const dihentikan=roleHasCases?roleMetodeCount.Dihentikan:Number(d.dihentikan||0);
                 setText('stat-kasus-berjalan',kasusBerjalan+' Kasus');
-                setText('stat-kasus-berjalan-persen',persenKasusBerjalan+'% dari total kasus');
+                setText('stat-kasus-berjalan-persen',pct(kasusBerjalan)+'% dari total kasus');
+                setText('stat-konsultasi',konsultasi+' Kasus');
+                setText('stat-konsultasi-persen',pct(konsultasi)+'% dari total kasus');
+                setText('stat-mediasi',mediasi+' Kasus');
+                setText('stat-mediasi-persen',pct(mediasi)+'% dari total kasus');
+                setText('stat-rujukan',rujukan+' Kasus');
+                setText('stat-rujukan-persen',pct(rujukan)+'% dari total kasus');
+                setText('stat-dihentikan',dihentikan+' Kasus');
+                setText('stat-dihentikan-persen',pct(dihentikan)+'% dari total kasus');
                 const jenis=d.jenisKasusAgregat||d.jenisKasus||d.jenisKasusCount||{};
                 const jenisSource=roleHasCases?roleJenisCount:jenis;
                 const jenisLabels=Object.keys(jenisSource);
@@ -2986,9 +3026,10 @@
             document.getElementById('stat-mediasi').textContent = countMediasi + ' Kasus';
             document.getElementById('stat-rujukan').textContent = countRujukan + ' Kasus';
             document.getElementById('stat-dihentikan').textContent = countDihentikan + ' Kasus';
-            const persenKasusBerjalan = totalKasus ? ((countKasusBerjalan / totalKasus) * 100).toFixed(1) : '0.0';
+            const pct2=(n)=>totalKasus?((Number(n||0)/totalKasus)*100).toFixed(1):'0.0';
             const berjalanEl=document.getElementById('stat-kasus-berjalan'); if(berjalanEl) berjalanEl.textContent=countKasusBerjalan+' Kasus';
-            const berjalanPctEl=document.getElementById('stat-kasus-berjalan-persen'); if(berjalanPctEl) berjalanPctEl.textContent=persenKasusBerjalan+'% dari total kasus';
+            const berjalanPctEl=document.getElementById('stat-kasus-berjalan-persen'); if(berjalanPctEl) berjalanPctEl.textContent=pct2(countKasusBerjalan)+'% dari total kasus';
+            ['konsultasi','mediasi','rujukan','dihentikan'].forEach(k=>{const el=document.getElementById('stat-'+k+'-persen');if(el)el.textContent=pct2({konsultasi:countKonsultasi,mediasi:countMediasi,rujukan:countRujukan,dihentikan:countDihentikan}[k])+'% dari total kasus';});
 
             let starCounts = [0, 0, 0, 0, 0];
             window.databaseKepuasan.forEach(s => {
