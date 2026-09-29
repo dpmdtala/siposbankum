@@ -810,9 +810,14 @@ function openSIPOSPDF(type){
                                     <input type="text" id="search-jumlah-kasus" oninput="renderJumlahKasusTable()" placeholder="Cari pelapor, desa, jenis kasus..." class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500">
                                 </div>
                                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                                    <select id="filter-desa-kasus" onchange="renderJumlahKasusTable()" class="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500 min-w-[190px]">
-                                        <option value="">-- Filter Semua Desa/Kelurahan --</option>
-                                    </select>
+                                    <div id="superadmin-kasus-filters" class="hidden items-center gap-2 flex-wrap">
+                                         <select id="filter-kecamatan-kasus" onchange="renderJumlahKasusTable()" class="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500 min-w-[170px]">
+                                             <option value="">-- Semua Kecamatan --</option>
+                                         </select>
+                                         <select id="filter-desa-kasus" onchange="renderJumlahKasusTable()" class="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500 min-w-[190px]">
+                                             <option value="">-- Semua Desa/Kelurahan --</option>
+                                         </select>
+                                     </div>
                                     <select id="filter-status-kasus" onchange="renderJumlahKasusTable()" class="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
                                         <option value="">-- Filter Semua Status Kasus --</option>
                                         <option value="Kasus Berjalan">Kasus Berjalan</option>
@@ -1136,7 +1141,7 @@ function openSIPOSPDF(type){
                                             <h4 class="font-extrabold text-base text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chart-column text-indigo-600"></i> Rekap & Analisis Kepuasan Layanan</h4>
                                             <p class="text-xs text-slate-500 mt-1">Ringkasan penilaian, responden, kritik dan saran, serta rekap berdasarkan kecamatan dan desa.</p>
                                         </div>
-                                        <button type="button" onclick="renderKepuasanAdminPanel()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Perbarui Rekap</button>
+                                        <div class="flex items-center gap-2"><button type="button" onclick="renderKepuasanAdminPanel()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Perbarui Rekap</button><button type="button" onclick="printKepuasanAdmin()" class="px-3 py-2 rounded-xl bg-gov-700 hover:bg-gov-800 text-white font-bold text-xs shadow-sm"><i class="fa-solid fa-print mr-1"></i> Print</button></div>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -2873,6 +2878,13 @@ function openSIPOSPDF(type){
             const searchInput = document.getElementById('search-jumlah-kasus');
             const statusFilter = document.getElementById('filter-status-kasus');
             const desaFilter = document.getElementById('filter-desa-kasus');
+            const kecamatanFilter = document.getElementById('filter-kecamatan-kasus');
+            const superAdminFilters = document.getElementById('superadmin-kasus-filters');
+            const isSuperAdmin = String(window.currentUser?.role || '').toLowerCase() === 'admin';
+            if (superAdminFilters) {
+                superAdminFilters.classList.toggle('hidden', !isSuperAdmin);
+                superAdminFilters.classList.toggle('flex', isSuperAdmin);
+            }
             if (!tbody) return;
 
             let filteredKasus = window.databaseKasus;
@@ -2886,18 +2898,28 @@ function openSIPOSPDF(type){
                 badge.textContent = `Akses Kabupaten (Super Admin / Tamu)`;
             }
 
-            if (desaFilter) {
-                const desaOptions = [...new Set((window.databaseKasus || []).map(k => String(k.desa || '').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));
-                const selectedDesa = desaFilter.value;
-                desaFilter.innerHTML = '<option value="">-- Filter Semua Desa/Kelurahan --</option>' + desaOptions.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
-                if (desaOptions.includes(selectedDesa)) desaFilter.value = selectedDesa;
+            if (isSuperAdmin) {
+                if (kecamatanFilter) {
+                    const selectedKec = kecamatanFilter.value;
+                    const kecOptions = [...new Set((window.databaseKasus || []).map(k => String(k.kecamatan || '').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));
+                    kecamatanFilter.innerHTML = '<option value="">-- Semua Kecamatan --</option>' + kecOptions.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join('');
+                    if (kecOptions.includes(selectedKec)) kecamatanFilter.value = selectedKec;
+                }
+                if (desaFilter) {
+                    const selectedDesa = desaFilter.value;
+                    const kecVal = kecamatanFilter ? kecamatanFilter.value : '';
+                    const sourceForDesa = kecVal ? (window.databaseKasus || []).filter(k => String(k.kecamatan || '').trim() === kecVal) : (window.databaseKasus || []);
+                    const desaOptions = [...new Set(sourceForDesa.map(k => String(k.desa || '').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));
+                    desaFilter.innerHTML = '<option value="">-- Semua Desa/Kelurahan --</option>' + desaOptions.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+                    if (desaOptions.includes(selectedDesa)) desaFilter.value = selectedDesa; else desaFilter.value = '';
+                }
             }
             const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
             const statusVal = statusFilter ? statusFilter.value : '';
-            const desaVal = desaFilter ? desaFilter.value : '';
-
-            if (desaVal) filteredKasus = filteredKasus.filter(k => String(k.desa || '') === desaVal);
-
+            const desaVal = isSuperAdmin && desaFilter ? desaFilter.value : '';
+            const kecamatanVal = isSuperAdmin && kecamatanFilter ? kecamatanFilter.value : '';
+            if (kecamatanVal) filteredKasus = filteredKasus.filter(k => String(k.kecamatan || '').trim() === kecamatanVal);
+            if (desaVal) filteredKasus = filteredKasus.filter(k => String(k.desa || '').trim() === desaVal);
             if (query) {
                 filteredKasus = filteredKasus.filter(k => 
                     (k.namaPelapor && k.namaPelapor.toLowerCase().includes(query)) ||
@@ -3130,6 +3152,23 @@ function openSIPOSPDF(type){
             const ds=document.getElementById('kepuasan-admin-desa-filter'); if(ds){ const current=ds.value; const desaList=[...new Set(rows.map(x=>String(x.desa||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id')); ds.innerHTML='<option value="">Semua Desa/Kelurahan</option>'+desaList.map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join(''); ds.value=current; }
             const selected=ds?.value||''; const kritikRows=rows.filter(x=>!selected || String(x.desa||'')===selected).sort((a,b)=>String(b.createdAt||b.tanggal||'').localeCompare(String(a.createdAt||a.tanggal||'')));
             const list=document.getElementById('kepuasan-kritik-list'); if(list) list.innerHTML=kritikRows.map(x=>`<div class="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div class="font-bold text-slate-800 text-xs">${escapeHtml(x.nama||'Anonim')} • ${escapeHtml(x.desa||'Desa tidak diisi')} • ${escapeHtml(x.kecamatan||'Kecamatan tidak diisi')}</div><div class="text-amber-500 font-bold text-xs">${'★'.repeat(Number(x.rating||0))}${'☆'.repeat(5-Number(x.rating||0))}</div></div><p class="text-xs text-slate-600 mt-2 whitespace-pre-wrap">${escapeHtml(x.kritik||'Tidak ada kritik/saran.')}</p><div class="text-[9px] text-slate-400 mt-2">${escapeHtml(formatDateTime_(x.createdAt||x.tanggal||''))}</div></div>`).join('')||'<div class="text-center text-xs text-slate-400 p-4">Belum ada kritik dan saran.</div>';
+        }
+
+        function printKepuasanAdmin(){
+            const publicAgg=window.dashboardSummary?.kepuasanPublik||{};
+            const rows=((window.databaseKepuasan||[]).length?window.databaseKepuasan:(publicAgg.records||[])).filter(x=>x&&Number(x.rating)>=1&&Number(x.rating)<=5);
+            const selectedDesa=document.getElementById('kepuasan-admin-desa-filter')?.value||'';
+            const data=rows.filter(x=>!selectedDesa||String(x.desa||'')===selectedDesa);
+            const total=data.length, avg=total?data.reduce((n,x)=>n+Number(x.rating||0),0)/total:0, positive=total?Math.round(data.filter(x=>Number(x.rating)>=4).length/total*100):0;
+            const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+            const counts=[1,2,3,4,5].map(n=>data.filter(x=>Number(x.rating)===n).length);
+            const kec={}; data.forEach(x=>{const k=String(x.kecamatan||'Tidak diisi').trim()||'Tidak diisi';if(!kec[k])kec[k]={n:0,s:0};kec[k].n++;kec[k].s+=Number(x.rating||0);});
+            const desa={}; data.forEach(x=>{const d=String(x.desa||'Desa tidak diisi').trim()||'Desa tidak diisi',k=String(x.kecamatan||'').trim(),key=d+'|'+k;if(!desa[key])desa[key]={d,k,n:0,s:0};desa[key].n++;desa[key].s+=Number(x.rating||0);});
+            const kecRows=Object.entries(kec).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v.n}</td><td>${(v.s/v.n).toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="3">Belum ada data.</td></tr>';
+            const desaRows=Object.values(desa).sort((a,b)=>b.n-a.n).map(v=>`<tr><td>${esc(v.d)}</td><td>${esc(v.k)}</td><td>${v.n}</td><td>${(v.s/v.n).toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="4">Belum ada data.</td></tr>';
+            const kritik=data.slice().sort((a,b)=>String(b.createdAt||b.tanggal||'').localeCompare(String(a.createdAt||a.tanggal||''))).map(x=>`<div class="kritik"><b>${esc(x.nama||'Anonim')}</b> • ${esc(x.desa||'Desa tidak diisi')} • ${esc(x.kecamatan||'Kecamatan tidak diisi')} <span class="stars">${'★'.repeat(Number(x.rating||0))}${'☆'.repeat(5-Number(x.rating||0))}</span><p>${esc(x.kritik||'Tidak ada kritik/saran.')}</p><small>${esc(formatDateTime_(x.createdAt||x.tanggal||''))}</small></div>`).join('')||'<p>Belum ada kritik dan saran.</p>';
+            const w=window.open('','_blank','width=1100,height=800'); if(!w){alert('Popup diblokir browser. Izinkan popup untuk mencetak laporan.');return;}
+            w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rekap & Analisis Kepuasan Layanan - SI-POSBANKUM</title><style>body{font-family:Arial;margin:28px;font-size:12px;color:#111827}.kop{text-align:center;border-bottom:2px solid #111827;padding-bottom:10px}.sub{text-align:center;margin:14px 0}.cards{display:flex;gap:10px}.card{flex:1;border:1px solid #cbd5e1;padding:10px;text-align:center}.label{font-size:10px;color:#64748b}.value{font-size:20px;font-weight:bold}h2{font-size:14px;margin-top:20px;border-bottom:1px solid #111827;padding-bottom:5px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:6px}th{background:#f1f5f9}.center{text-align:center}.kritik{border:1px solid #cbd5e1;padding:8px;margin:6px 0}.stars{float:right;color:#d97706}.kritik p{white-space:pre-wrap;margin:7px 0}</style></head><body><div class="kop"><b>PEMERINTAH KABUPATEN TANAH LAUT</b><br><b>DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</b><br><b>SI-POSBANKUM</b><br>Sistem Informasi Pos Bantuan Hukum</div><div class="sub"><h1>REKAP & ANALISIS KEPUASAN LAYANAN</h1>${selectedDesa?`Desa/Kelurahan: <b>${esc(selectedDesa)}</b>`:'Seluruh Desa/Kelurahan'}</div><div class="cards"><div class="card"><div class="label">Rating Kepuasan</div><div class="value">${avg.toFixed(2)} / 5</div></div><div class="card"><div class="label">Jumlah Responden</div><div class="value">${total}</div></div><div class="card"><div class="label">Responden 4–5 Bintang</div><div class="value">${positive}%</div></div></div><h2>Distribusi Penilaian</h2><table><tr><th>Rating</th><th>Jumlah</th></tr>${counts.map((n,i)=>`<tr><td>${i+1} Bintang</td><td class="center">${n}</td></tr>`).join('')}</table><h2>Rekap Berdasarkan Kecamatan</h2><table><tr><th>Kecamatan</th><th>Responden</th><th>Rata-rata</th></tr>${kecRows}</table><h2>Rekap Berdasarkan Desa/Kelurahan</h2><table><tr><th>Desa/Kelurahan</th><th>Kecamatan</th><th>Responden</th><th>Rata-rata</th></tr>${desaRows}</table><h2>Kritik & Saran</h2>${kritik}<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`); w.document.close();
         }
 
         async function updateTableCaseStatus(noReg,newStatus){try{await apiRequest('updateCaseStatus',{noReg,statusKasus:newStatus});await loadInternalData();updateDashboardStatsAndCharts();renderJumlahKasusTable();}catch(e){alert(e.message);}}
