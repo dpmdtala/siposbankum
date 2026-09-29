@@ -1,6 +1,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -37,6 +38,32 @@
         }
         .print-only { display: none; }
     </style>
+<style id="siposbankum-tentang-css">
+#tentang-siposbankum-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,22,72,.72);backdrop-filter:blur(7px);padding:18px;align-items:center;justify-content:center;}
+#tentang-siposbankum-modal.show{display:flex;}
+.tentang-modal-card{width:min(100%,920px);max-height:92vh;overflow:auto;background:#fff;border-radius:28px;box-shadow:0 30px 90px rgba(0,0,0,.30);border:1px solid rgba(255,255,255,.8);}
+.tentang-doc-card{transition:transform .18s ease,box-shadow .18s ease;}
+.tentang-doc-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(15,63,110,.13);}
+@media(max-width:640px){#tentang-siposbankum-modal{padding:10px}.tentang-modal-card{border-radius:22px}.tentang-doc-card{padding:14px!important;}}
+</style>
+<script id="tentang-siposbankum-js">
+function openTentangSIPOSBANKUM(){
+  const modal=document.getElementById('tentang-siposbankum-modal');
+  if(!modal) return;
+  modal.classList.add('show');
+  document.body.classList.add('overflow-hidden');
+}
+function closeTentangSIPOSBANKUM(){
+  const modal=document.getElementById('tentang-siposbankum-modal');
+  if(!modal) return;
+  modal.classList.remove('show');
+  document.body.classList.remove('overflow-hidden');
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape') closeTentangSIPOSBANKUM();
+});
+</script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style id="siposbankum-login-background-style">
@@ -95,6 +122,14 @@
                     <button type="button" onclick="document.getElementById('public-dasar-hukum')?.scrollIntoView({behavior:'smooth',block:'start'})" class="text-left p-3 rounded-2xl border border-indigo-200 bg-indigo-50/90 hover:bg-indigo-100 transition flex items-center gap-3">
                         <span class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0"><i class="fa-solid fa-scale-balanced"></i></span>
                         <span><b class="block text-sm text-indigo-900">Dasar Hukum</b><small class="text-[11px] text-indigo-700">Lihat Landasan Hukum App SI-POSBANKUM</small></span>
+                    </button>
+                </div>
+
+                <div class="px-4 pb-4">
+                    <button type="button" onclick="openTentangSIPOSBANKUM()" class="w-full text-left p-4 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-blue-50 hover:from-emerald-100 hover:to-blue-100 transition flex items-center gap-4 shadow-sm">
+                        <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-700 to-blue-700 text-white flex items-center justify-center shrink-0 shadow"><i class="fa-solid fa-circle-info text-lg"></i></span>
+                        <span class="flex-1"><b class="block text-sm text-slate-900">Tentang SI-POSBANKUM</b><small class="text-[11px] text-slate-600">Profil resmi, filosofi logo, dan buku panduan pengguna SI-POSBANKUM V3.0</small></span>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
                     </button>
                 </div>
             </div>
@@ -170,6 +205,47 @@
             <div class="mt-4 pt-4 border-t border-white/10"><div class="text-[10px] font-extrabold tracking-wide">SEMUA SOSIAL MEDIA DPMD KABUPATEN TANAH LAUT</div><div class="flex flex-wrap justify-center gap-2 mt-3"><a href="https://www.facebook.com/dinaspmd.tanahlaut#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20"><i class="fa-brands fa-facebook"></i> Facebook</a><a href="https://www.instagram.com/dinaspmdkabtala/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20"><i class="fa-brands fa-instagram"></i> Instagram</a><a href="https://www.tiktok.com/@dinaspmdtanahlaut" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20"><i class="fa-brands fa-tiktok"></i> TikTok</a><a href="https://www.youtube.com/channel/UCpPPZYZ9yvAxyQohqDR4Qzg" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20"><i class="fa-brands fa-youtube"></i> YouTube</a></div></div>
         </footer>
     </section>
+
+
+    <!-- Modal Tentang SI-POSBANKUM -->
+    <div id="tentang-siposbankum-modal" role="dialog" aria-modal="true" aria-labelledby="tentang-siposbankum-title" onclick="if(event.target===this) closeTentangSIPOSBANKUM()">
+        <div class="tentang-modal-card">
+            <div class="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-200 px-5 sm:px-7 py-4 flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.2em] font-extrabold text-emerald-700">Informasi Resmi</p>
+                    <h2 id="tentang-siposbankum-title" class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">Tentang SI-POSBANKUM</h2>
+                    <p class="text-[11px] text-slate-500 mt-1">Dokumen resmi SI-POSBANKUM Versi 3.0</p>
+                </div>
+                <button type="button" onclick="closeTentangSIPOSBANKUM()" aria-label="Tutup" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 sm:p-7">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <a href="docs/Profil_Resmi_SI_POSBANKUM_V3.0.pdf" target="_blank" rel="noopener" class="tentang-doc-card block rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-700 text-white flex items-center justify-center text-lg shadow-sm"><i class="fa-solid fa-building-columns"></i></div>
+                        <h3 class="font-extrabold text-blue-950 mt-4">Profil Resmi</h3>
+                        <p class="text-xs text-blue-800/80 mt-2 leading-relaxed">Mengenal identitas, gambaran umum, latar belakang, tujuan, manfaat, pengguna, fitur, prinsip, dan arah pengembangan SI-POSBANKUM V3.0.</p>
+                        <span class="inline-flex items-center gap-2 mt-4 text-[11px] font-extrabold text-blue-700">Buka Dokumen <i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                    </a>
+                    <a href="docs/Filosofi_Logo_SI_POSBANKUM.pdf" target="_blank" rel="noopener" class="tentang-doc-card block rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center text-lg shadow-sm"><i class="fa-solid fa-palette"></i></div>
+                        <h3 class="font-extrabold text-amber-950 mt-4">Filosofi Logo</h3>
+                        <p class="text-xs text-amber-900/80 mt-2 leading-relaxed">Menjelaskan makna rumah/atap desa, timbangan hukum, figur masyarakat, tangan perlindungan, warna, unsur digital, dan makna keseluruhan logo.</p>
+                        <span class="inline-flex items-center gap-2 mt-4 text-[11px] font-extrabold text-amber-700">Buka Dokumen <i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                    </a>
+                    <a href="docs/Buku_Panduan_Pengguna_SI_POSBANKUM_V3.0.pdf" target="_blank" rel="noopener" class="tentang-doc-card block rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-700 text-white flex items-center justify-center text-lg shadow-sm"><i class="fa-solid fa-book-open"></i></div>
+                        <h3 class="font-extrabold text-emerald-950 mt-4">Buku Panduan Pengguna</h3>
+                        <p class="text-xs text-emerald-900/80 mt-2 leading-relaxed">Panduan operasional untuk Tamu/Pimpinan, Paralegal, dan Super Admin, termasuk login, dashboard, kasus, penyuluhan, akun, log aktivitas, dan pemecahan masalah.</p>
+                        <span class="inline-flex items-center gap-2 mt-4 text-[11px] font-extrabold text-emerald-700">Buka Panduan <i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                    </a>
+                </div>
+                <div class="mt-5 rounded-2xl bg-slate-900 text-white p-4 text-xs leading-relaxed">
+                    <b class="text-emerald-200"><i class="fa-solid fa-circle-info mr-1"></i> SI-POSBANKUM V3.0</b><br>
+                    Sistem Informasi Pos Bantuan Hukum yang mendukung pengelolaan layanan hukum Desa/Kelurahan secara terstruktur, terdokumentasi, dan mudah dipantau.
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="main-app" class="hidden flex-col min-h-screen w-full">
         <header class="bg-gradient-to-r from-teal-900 via-emerald-800 to-gov-800 text-white shadow-lg sticky top-0 z-40 no-print">
@@ -2215,7 +2291,8 @@
             const foto=item.fotoUrl ? `<div class="foto"><div class="label">DOKUMENTASI</div><img src="${escapeBeritaHtml(item.fotoUrl)}" alt="Dokumentasi kegiatan"></div>` : '';
             const w=window.open('','_blank','width=900,height=800');
             if(!w){alert('Pop-up diblokir browser. Izinkan pop-up untuk mencetak kegiatan penyuluhan.');return;}
-            w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Kegiatan Penyuluhan - ${esc(item.tanggal)}</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:34px;font-size:12px;line-height:1.5}.kop{text-align:center;border-bottom:3px solid #111827;padding-bottom:10px;margin-bottom:18px}.kop .a{font-weight:700;font-size:14px}.kop .b{font-weight:800;font-size:17px}.kop .c{font-weight:800;font-size:18px;margin-top:3px}.title{text-align:center;font-weight:800;font-size:16px;margin:8px 0 18px;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}.box{border:1px solid #d1d5db;padding:8px;border-radius:4px}.label{font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px}.value{font-size:12px;white-space:pre-line}.wide{grid-column:1/-1}.foto{margin-top:16px}.foto img{display:block;max-width:100%;max-height:360px;margin-top:7px;border:1px solid #d1d5db}.auth{margin-top:18px;padding:9px 10px;border:1px solid #9ca3af;background:#f8fafc;font-size:9px;line-height:1.45;color:#374151}.foot{margin-top:10px;text-align:right;font-size:10px;color:#6b7280}.actions{margin-top:22px;text-align:center}.actions button{padding:8px 18px;border:0;border-radius:5px;background:#1f2937;color:white;font-weight:700}@media print{.actions{display:none}body{margin:20mm}}</style></head><body onload="setTimeout(function(){window.print()},300)"><div class="kop"><div class="a">PEMERINTAH KABUPATEN TANAH LAUT</div><div class="b">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</div><div class="c">SI-POSBANKUM</div></div><div class="title">LAPORAN KEGIATAN PENYULUHAN HUKUM</div><div class="grid">${rows.map(([l,v])=>`<div class="box ${['Materi / Uraian Kegiatan','Hasil / Tindak Lanjut'].includes(l)?'wide':''}"><div class="label">${esc(l)}</div><div class="value">${esc(v)}</div></div>`).join('')}</div>${foto}<div class="auth"><strong>Keterangan autentikasi:</strong> Dokumen ini dicetak dari data yang tersimpan pada SI-POSBANKUM dan merupakan data asli yang telah terautentikasi oleh sistem.</div><div class="foot">Dicetak dari SI-POSBANKUM</div><div class="actions"><button onclick="window.print()">Print</button></div></body></html>`);
+            w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Kegiatan Penyuluhan - ${esc(item.tanggal)}</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:34px;font-size:12px;line-height:1.5}.kop{text-align:center;border-bottom:3px solid #111827;padding-bottom:10px;margin-bottom:18px}.kop .a{font-weight:700;font-size:14px}.kop .b{font-weight:800;font-size:17px}.kop .c{font-weight:800;font-size:18px;margin-top:3px}.title{text-align:center;font-weight:800;font-size:16px;margin:8px 0 18px;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}.box{border:1px solid #d1d5db;padding:8px;border-radius:4px}.label{font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px}.value{font-size:12px;white-space:pre-line}.wide{grid-column:1/-1}.foto{margin-top:16px}.foto img{display:block;max-width:100%;max-height:360px;margin-top:7px;border:1px solid #d1d5db}.auth{margin-top:18px;padding:9px 10px;border:1px solid #9ca3af;background:#f8fafc;font-size:9px;line-height:1.45;color:#374151}.foot{margin-top:10px;text-align:right;font-size:10px;color:#6b7280}.actions{margin-top:22px;text-align:center}.actions button{padding:8px 18px;border:0;border-radius:5px;background:#1f2937;color:white;font-weight:700}@media print{.actions{display:none}body{margin:20mm}}</style></head><body onload="setTimeout(function(){window.print()},300)"><div class="kop"><div class="a">PEMERINTAH KABUPATEN TANAH LAUT</div><div class="b">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</div><div class="c">SI-POSBANKUM</div></div><div class="title">LAPORAN KEGIATAN PENYULUHAN HUKUM</div><div class="grid">${rows.map(([l,v])=>`<div class="box ${['Materi / Uraian Kegiatan','Hasil / Tindak Lanjut'].includes(l)?'wide':''}"><div class="label">${esc(l)}</div><div class="value">${esc(v)}</div></div>`).join('')}</div>${foto}<div class="auth"><strong>Keterangan autentikasi:</strong> Dokumen ini dicetak dari data yang tersimpan pada SI-POSBANKUM dan merupakan data asli yang telah terautentikasi oleh sistem.</div><div class="foot">Dicetak dari SI-POSBANKUM</div><div class="actions"><button onclick="window.print()">Print</button></div>
+</body></html>`);
             w.document.close();
         }
 
