@@ -1258,10 +1258,12 @@
     <div id="welcome-popup" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-emerald-100 overflow-hidden">
             <div class="p-6 text-center">
-                <div class="mx-auto w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl shadow-sm"><i class="fa-solid fa-hand-wave"></i></div>
+                <div class="mx-auto w-24 h-24 rounded-full bg-slate-100 border-4 border-emerald-100 shadow-md overflow-hidden flex items-center justify-center">
+                    <img id="welcome-popup-photo" src="https://placehold.co/200x200/e2e8f0/475569?text=U" alt="Foto Profil" class="w-full h-full object-cover">
+                </div>
                 <h3 id="welcome-popup-title" class="mt-4 text-xl font-extrabold text-slate-800">Selamat Datang</h3>
                 <p id="welcome-popup-desc" class="mt-2 text-sm leading-relaxed text-slate-600"></p>
-                <button type="button" onclick="closeWelcomePopup_()" class="mt-5 w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm">Mulai Menggunakan SI-POSBANKUM</button>
+                <div class="mt-4 text-[11px] font-semibold text-slate-400">Membuka Dashboard SI-POSBANKUM...</div>
             </div>
         </div>
     </div>
@@ -2049,12 +2051,16 @@
             } catch(err) { alert(err.message||'Login gagal.'); }
         }
 
-        function showWelcomePopup_(){
+        let welcomePopupTimer_ = null;
+        async function showWelcomePopup_(){
             const modal=document.getElementById('welcome-popup');
             const title=document.getElementById('welcome-popup-title');
             const desc=document.getElementById('welcome-popup-desc');
+            const photo=document.getElementById('welcome-popup-photo');
             if(!modal||!title||!desc)return;
             const u=window.currentUser||{};
+            const fallback = "https://placehold.co/200x200/e2e8f0/475569?text=" + encodeURIComponent((u.fullname||'U').charAt(0).toUpperCase());
+            if(photo) photo.src=fallback;
             if(u.role==='admin'){
                 title.textContent='Selamat Datang Super Admin Kabupaten';
                 desc.textContent='Anda berhasil masuk ke Sistem Informasi Pos Bantuan Hukum (SI-POSBANKUM) Kabupaten Tanah Laut.';
@@ -2066,8 +2072,25 @@
                 desc.textContent='Selamat datang di App SI-POSBANKUM.';
             }
             modal.classList.remove('hidden');
+
+            // Ambil foto profil akun yang sedang login dari server/database.
+            if(photo && u.fotoUrl && window.siposToken){
+                try{
+                    const r=await apiRequest('getProfilePhoto',{}, {timeoutMs:10000,retry:false});
+                    const d=r?.data||{};
+                    if(d.base64 && d.mimeType) photo.src=`data:${d.mimeType};base64,${d.base64}`;
+                }catch(e){ console.warn('Foto profil popup tidak dapat dimuat:',e); }
+            }
+
+            // Popup otomatis ditutup; pengguna tidak perlu menekan tombol.
+            if(welcomePopupTimer_) clearTimeout(welcomePopupTimer_);
+            welcomePopupTimer_=setTimeout(closeWelcomePopup_,3000);
         }
-        function closeWelcomePopup_(){document.getElementById('welcome-popup')?.classList.add('hidden');}
+        function closeWelcomePopup_(){
+            const modal=document.getElementById('welcome-popup');
+            if(modal) modal.classList.add('hidden');
+            if(welcomePopupTimer_){clearTimeout(welcomePopupTimer_);welcomePopupTimer_=null;}
+        }
 
         function setupPenyuluhanRegionalDropdowns() {
             const kecSelect = document.getElementById('penyuluhan-kecamatan');
