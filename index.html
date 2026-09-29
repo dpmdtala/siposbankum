@@ -359,9 +359,15 @@
                                 <div class="h-72 flex justify-center items-center relative"><canvas id="chartKepuasan"></canvas></div>
                             </div>
                             <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                    <i class="fa-solid fa-chart-column text-teal-600"></i> Kegiatan Penyuluhan per Kecamatan
-                                </h3>
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                        <i class="fa-solid fa-chart-column text-teal-600"></i> Kegiatan Penyuluhan per Kecamatan
+                                    </h3>
+                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-100">
+                                        <span class="text-[10px] font-bold uppercase tracking-wide text-teal-700">Total Penyuluhan</span>
+                                        <span id="stat-total-penyuluhan" class="text-lg font-extrabold text-teal-800">0</span>
+                                    </div>
+                                </div>
                                 <div class="h-72 flex justify-center items-center relative"><canvas id="chartPenyuluhan"></canvas></div>
                             </div>
                             <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 lg:col-span-2">
@@ -3161,7 +3167,7 @@
                 // Semua role (Tamu/Pimpinan, Paralegal, Super Admin) harus menerima
                 // agregat yang sama dari SELURUH sheet PENYULUHAN, bukan dataset tabel
                 // yang mungkin dibatasi berdasarkan kewenangan Paralegal.
-                const perKec=d.penyuluhanPerKecamatan||{}; const labelsPenyuluhan=Object.keys(REGIONAL_DATA||{}); const valuesPenyuluhan=labelsPenyuluhan.map(k=>Number(perKec[k]||0));chartPenyuluhanInstance=new Chart(c3,{type:'bar',data:{labels:labelsPenyuluhan,datasets:[{label:'Kegiatan Penyuluhan',data:valuesPenyuluhan,backgroundColor:'#0f766e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[{id:'guestPenyuluhanLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const ds=chart.data.datasets[0];const meta=chart.getDatasetMeta(0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);ctx.save();ctx.fillStyle='#0f172a';ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.fillText(String(val),el.x,el.y-6);ctx.restore();});}}]});}
+                const perKec=d.penyuluhanPerKecamatan||{}; const labelsPenyuluhan=Object.keys(REGIONAL_DATA||{}); const valuesPenyuluhan=labelsPenyuluhan.map(k=>Number(perKec[k]||0)); const totalPenyuluhan=valuesPenyuluhan.reduce((sum,val)=>sum+val,0); const totalPenyuluhanEl=document.getElementById('stat-total-penyuluhan'); if(totalPenyuluhanEl) totalPenyuluhanEl.textContent=String(totalPenyuluhan); chartPenyuluhanInstance=new Chart(c3,{type:'bar',data:{labels:labelsPenyuluhan,datasets:[{label:'Kegiatan Penyuluhan',data:valuesPenyuluhan,backgroundColor:'#0f766e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[{id:'guestPenyuluhanLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const ds=chart.data.datasets[0];const meta=chart.getDatasetMeta(0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);ctx.save();ctx.fillStyle='#0f172a';ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.fillText(String(val),el.x,el.y-6);ctx.restore();});}}]});}
 
                 const c2=document.getElementById('chartTrenKasus');
                 if(c2){if(chartTrenInstance)chartTrenInstance.destroy();const tr=d.trenTahunan||{}; const tren2026=totalKasus; chartTrenInstance=new Chart(c2,{type:'bar',data:{labels:['2024','2025','2026'],datasets:[{label:'Total Kasus Masuk',data:[249,265,tren2026]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
