@@ -256,6 +256,10 @@
                     <button type="button" id="tab-btn-sheets" onclick="switchTab('sheets')" class="tab-btn admin-only-menu w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
                         <i class="fa-solid fa-cloud-arrow-up text-emerald-700 w-5 text-center"></i> Sinkronisasi & Koneksi
                     </button>
+                    <button type="button" id="tab-btn-log-aktivitas" onclick="switchTab('log-aktivitas')" class="tab-btn admin-only-menu w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-clock-rotate-left text-violet-700 w-5 text-center"></i> Log Aktivitas
+                    </button>
+
                 </div>
 
                 <div id="menu-group-akun" class="mt-2">
@@ -1101,6 +1105,32 @@
                     </section>
 
                     <!-- Google Sheets Integration Section -->
+                    <!-- Log Aktivitas Section -->
+                    <section id="tab-log-aktivitas" class="tab-content hidden space-y-6">
+                        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm">
+                            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                <div>
+                                    <h3 class="font-extrabold text-xl text-slate-800 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-violet-700"></i> Log Aktivitas</h3>
+                                    <p class="text-xs text-slate-500 mt-1">Catatan aktivitas login dan aktivitas aplikasi Super Admin serta Paralegal.</p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <select id="audit-filter-role" onchange="loadAuditLog()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
+                                        <option value="">Semua Pengguna</option><option value="admin">Super Admin</option><option value="paralegal">Paralegal</option>
+                                    </select>
+                                    <button type="button" onclick="loadAuditLog()" class="px-4 py-2 rounded-xl bg-violet-700 text-white text-xs font-bold"><i class="fa-solid fa-rotate mr-1"></i> Refresh</button>
+                                </div>
+                            </div>
+                            <div class="mt-5 overflow-x-auto border border-slate-200 rounded-2xl">
+                                <table class="w-full text-xs">
+                                    <thead class="bg-slate-50 text-slate-500 uppercase tracking-wide">
+                                        <tr><th class="p-3 text-left">Waktu</th><th class="p-3 text-left">Pengguna</th><th class="p-3 text-left">Role</th><th class="p-3 text-left">Aktivitas</th><th class="p-3 text-left">Target</th><th class="p-3 text-left">Desa</th></tr>
+                                    </thead>
+                                    <tbody id="audit-log-body"><tr><td colspan="6" class="p-8 text-center text-slate-400">Belum dimuat.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
                     <section id="tab-sheets" class="tab-content hidden max-w-xl mx-auto space-y-4">
                         <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                             <h3 class="font-bold text-slate-800">Google Apps Script Web App URL</h3>
@@ -1424,6 +1454,30 @@
             return result;
         }
         async function loadPublicDashboard() { const r=await apiRequest('publicContent'); window.dashboardSummary=r.data.stats||{}; window.databaseKasus=[]; window.databasePenyuluhan=[]; window.databaseKepuasan=r.data.stats?.kepuasanPublik?.records||[]; window.databaseParalegal=r.data.stats?.paralegal||[]; window.databaseBerita=r.data.berita||[]; updateDashboardStatsAndCharts(); renderParalegalGrid(); if(typeof renderBeritaList==='function') renderBeritaList(); }
+        async function loadAuditLog(){
+            if(window.currentUser?.role!=='admin') return;
+            const body=document.getElementById('audit-log-body');
+            if(body) body.innerHTML='<tr><td colspan="6" class="p-8 text-center text-slate-400">Memuat log aktivitas...</td></tr>';
+            try{
+                const role=document.getElementById('audit-filter-role')?.value||'';
+                const r=await apiRequest('getAuditLog',{limit:500,role});
+                const rows=Array.isArray(r?.data?.records)?r.data.records:[];
+                if(!rows.length){ if(body) body.innerHTML='<tr><td colspan="6" class="p-8 text-center text-slate-400">Belum ada log aktivitas.</td></tr>'; return; }
+                if(body) body.innerHTML=rows.map(x=>{
+                    const dt=formatAuditDate_(x.timestamp);
+                    return `<tr class="border-t border-slate-100 hover:bg-slate-50"><td class="p-3 whitespace-nowrap">${escapeHtml(dt)}</td><td class="p-3 font-semibold">${escapeHtml(x.username||'-')}</td><td class="p-3">${escapeHtml(x.role==='admin'?'Super Admin':(x.role==='paralegal'?'Paralegal':x.role||'-'))}</td><td class="p-3 font-semibold">${escapeHtml(formatAuditAction_(x.action))}</td><td class="p-3">${escapeHtml(x.target||'-')}</td><td class="p-3">${escapeHtml(x.desa||'-')}</td></tr>`;
+                }).join('');
+            }catch(e){ if(body) body.innerHTML=`<tr><td colspan="6" class="p-8 text-center text-red-500">${escapeHtml(e.message||'Log aktivitas gagal dimuat.')}</td></tr>`; }
+        }
+        function formatAuditDate_(v){
+            const d=new Date(v); if(Number.isNaN(d.getTime())) return String(v||'-');
+            const p=n=>String(n).padStart(2,'0');
+            return `${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+        }
+        function formatAuditAction_(v){
+            const x=String(v||'').replace(/^ACCESS_/,'').replace(/_/g,' ').toLowerCase();
+            return x.replace(/\b\w/g,m=>m.toUpperCase());
+        }
         async function loadInternalData() { const r=await apiRequest('internalDashboard'); window.dashboardSummary=r.data.summary||{}; window.databaseKasus=Array.isArray(r.data.kasus)?r.data.kasus:[]; window.databasePenyuluhan=Array.isArray(r.data.penyuluhan)?r.data.penyuluhan:[]; window.databaseBerita=Array.isArray(r.data.berita)?r.data.berita:[]; window.databaseParalegal=Array.isArray(r.data.paralegal)?r.data.paralegal:[]; window.databaseKepuasan=Array.isArray(r.data.kepuasan)?r.data.kepuasan:[]; updateDashboardStatsAndCharts(); const scope=document.getElementById('dashboard-scope-label'); if(scope) scope.textContent=window.currentUser?.role==='admin'?'Rekapitulasi seluruh data kasus dan pelayanan Posbankum Desa/Kelurahan se-Kabupaten Tanah Laut.':'Rekapitulasi kasus dan pelayanan Posbankum pada desa/kelurahan yang menjadi kewenangan Paralegal Anda.'; }
         // Chart.js instances kept globally so every refresh can safely destroy
         // the previous chart before creating a new one.
@@ -1679,7 +1733,8 @@
                 'tab-btn-setting-profile',
                 'tab-btn-kepuasan',
                 'tab-btn-paralegal-management',
-                'tab-btn-sheets'
+                'tab-btn-sheets',
+                'tab-btn-log-aktivitas'
             ];
             const guestAllowed = ['tab-btn-dashboard', 'tab-btn-tahapan-layanan', 'tab-btn-data-paralegal', 'tab-btn-dasar-hukum', 'tab-btn-berita', 'tab-btn-kepuasan'];
             const role = window.currentUser?.role || '';
@@ -2528,7 +2583,7 @@
 
         function switchTab(tabId) {
             persistLastTab_(tabId);
-            if ((tabId === 'paralegal-management' || tabId === 'sheets') && (!window.currentUser || window.currentUser.role !== 'admin')) {
+            if ((tabId === 'paralegal-management' || tabId === 'sheets' || tabId === 'log-aktivitas') && (!window.currentUser || window.currentUser.role !== 'admin')) {
                 alert('Akses ditolak! Menu ini khusus untuk Super Admin.');
                 return;
             }
@@ -2541,6 +2596,10 @@
                 }
             }
 
+            if (window.currentUser && ['admin','paralegal'].includes(window.currentUser.role)) {
+                apiRequest('recordActivity',{action:'VIEW_MENU',target:tabId}).catch(()=>{});
+            }
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.className = "tab-btn w-full text-left px-3.5 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-3";
@@ -2550,7 +2609,9 @@
             const activeBtn = document.getElementById(`tab-btn-${tabId}`);
             if (activeBtn) activeBtn.className = "tab-btn w-full text-left px-3.5 py-3 rounded-xl text-emerald-900 bg-emerald-50 font-bold transition flex items-center gap-3";
             
-            if(tabId === 'laporkan-kasus') {
+            if(tabId === 'log-aktivitas') {
+                loadAuditLog();
+            } else if(tabId === 'laporkan-kasus') {
                 setupRegionalDropdowns();
             } else if (tabId === 'penyuluhan') {
                 setupPenyuluhanRegionalDropdowns();
