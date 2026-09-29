@@ -39,7 +39,12 @@
         .print-only { display: none; }
         .print-kop-logo { width: 78px; height: 78px; object-fit: contain; margin: 0 auto 8px; display:block; }
         @media print { .print-kop-logo { width: 72px; height: 72px; margin-bottom: 6px; } }
-    </style>
+    
+/* Mobile: beri ruang saat menu menggulir ke bagian konten tujuan */
+@media (max-width: 767px) {
+  #main-app main .tab-content { scroll-margin-top: 12px; }
+}
+</style>
 <style id="siposbankum-tentang-css">
 #tentang-siposbankum-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,22,72,.72);backdrop-filter:blur(7px);padding:18px;align-items:center;justify-content:center;}
 #tentang-siposbankum-modal.show{display:flex;}
@@ -2995,6 +3000,20 @@ function openSIPOSPDF(type){
             if (!targetTab) { console.warn('Tab tidak ditemukan:', tabId); return; }
             targetTab.classList.remove('hidden');
             const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+
+            // Pada perangkat mobile, setelah menu dipilih otomatis gulir ke form/konten tujuan.
+            // Desktop tetap mempertahankan posisi scroll normal.
+            if (window.matchMedia('(max-width: 767px)').matches) {
+                requestAnimationFrame(() => {
+                    const mainScroller = targetTab.closest('main');
+                    if (mainScroller) {
+                        const top = Math.max(0, targetTab.offsetTop - 12);
+                        mainScroller.scrollTo({ top, behavior: 'smooth' });
+                    } else {
+                        targetTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
             if (activeBtn) activeBtn.className = "tab-btn w-full text-left px-3.5 py-3 rounded-xl text-emerald-900 bg-emerald-50 font-bold transition flex items-center gap-3";
             
             if(tabId === 'log-aktivitas') {
