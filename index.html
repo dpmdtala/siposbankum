@@ -5,10 +5,10 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta name="application-version" content="7.0-logo-integrated">
+    <meta name="application-version" content="9.0-paralegal-data-scope">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SI-POSBANKUM V.3.0 - Sistem Informasi Pos Bantuan Hukum Desa</title>
+    <title>SI-POSBANKUM V.9 - Sistem Informasi Pos Bantuan Hukum Desa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1929,7 +1929,7 @@ function openSIPOSPDF(type){
             }
             throw lastError || new Error(`Permintaan ${action} gagal.`);
         }
-        async function loadPublicDashboard() { const r=await apiRequest('publicContent'); window.dashboardSummary=r.data.stats||{}; window.databaseKasus=[]; window.databasePenyuluhan=[]; window.databaseKepuasan=r.data.stats?.kepuasanPublik?.records||[]; window.databaseParalegal=r.data.stats?.paralegal||[]; window.databaseBerita=r.data.berita||[]; updateDashboardStatsAndCharts(); renderParalegalGrid(); if(typeof renderBeritaList==='function') renderBeritaList(); }
+        async function loadPublicDashboard() { const r=await apiRequest('publicContent'); window.dashboardSummary=r.data.stats||{}; window.globalDashboardSummary=window.dashboardSummary; window.databaseKasus=[]; window.databasePenyuluhan=[]; window.databaseKepuasan=r.data.stats?.kepuasanPublik?.records||[]; window.databaseParalegal=r.data.stats?.paralegal||[]; window.databaseBerita=r.data.berita||[]; updateDashboardStatsAndCharts(); renderParalegalGrid(); if(typeof renderBeritaList==='function') renderBeritaList(); }
         async function loadAuditLog(){
             if(window.currentUser?.role!=='admin') return;
             const body=document.getElementById('audit-log-body');
@@ -1954,7 +1954,75 @@ function openSIPOSPDF(type){
             const x=String(v||'').replace(/^ACCESS_/,'').replace(/_/g,' ').toLowerCase();
             return x.replace(/\b\w/g,m=>m.toUpperCase());
         }
-        async function loadInternalData() { const r=await apiRequest('internalDashboard'); window.dashboardSummary=r.data.summary||{}; window.databaseKasus=Array.isArray(r.data.kasus)?r.data.kasus:[]; window.databasePenyuluhan=Array.isArray(r.data.penyuluhan)?r.data.penyuluhan:[]; window.databaseBerita=Array.isArray(r.data.berita)?r.data.berita:[]; window.databaseParalegal=Array.isArray(r.data.paralegal)?r.data.paralegal:[]; window.databaseKepuasan=Array.isArray(r.data.kepuasan)?r.data.kepuasan:[]; updateDashboardStatsAndCharts(); const scope=document.getElementById('dashboard-scope-label'); if(scope) scope.textContent=window.currentUser?.role==='admin'?'Rekapitulasi seluruh data kasus dan pelayanan Posbankum Desa/Kelurahan se-Kabupaten Tanah Laut.':'Rekapitulasi kasus dan pelayanan Posbankum pada desa/kelurahan yang menjadi kewenangan Paralegal Anda.'; }
+        async function loadInternalData() {
+            const r=await apiRequest('internalDashboard');
+            const payload=r?.data||{};
+            const serverKasus=Array.isArray(payload.kasus)?payload.kasus:[];
+            const role=String(window.currentUser?.role||'').trim().toLowerCase();
+            const normalizeWilayah=(v)=>String(v??'')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                .replace(/\s+/g,' ').trim().toLowerCase();
+
+            // ================================================================
+            // SECURITY BOUNDARY — FRONTEND DEFENSE IN DEPTH
+            // Server/GAS adalah sumber kewenangan utama. Frontend tetap
+            // melakukan verifikasi kedua agar data tidak pernah bercampur.
+            // ================================================================
+            if(role==='paralegal'){
+                const userDesa=normalizeWilayah(window.currentUser?.desa);
+                const userKec=normalizeWilayah(window.currentUser?.kecamatan);
+                const scope=payload.scope||{};
+                const serverDesa=normalizeWilayah(scope.desa);
+                const serverKec=normalizeWilayah(scope.kecamatan);
+
+                // Jika server mengembalikan scope yang tidak cocok dengan akun,
+                // jangan tampilkan data kasus sama sekali.
+                const scopeValid=scope.role==='paralegal'
+                    && serverDesa===userDesa
+                    && serverKec===userKec
+                    && !!userDesa
+                    && !!userKec;
+
+                if(!scopeValid){
+                    console.error('SI-POSBANKUM: scope server tidak cocok dengan akun Paralegal. Data internal dikunci.');
+                    window.databaseKasus=[];
+                    window.databasePenyuluhan=[];
+                    window.databaseKepuasan=[];
+                }else{
+                    window.databaseKasus=serverKasus.filter(k=>
+                        normalizeWilayah(k?.desa)===userDesa &&
+                        normalizeWilayah(k?.kecamatan)===userKec
+                    );
+                    window.databasePenyuluhan=(Array.isArray(payload.penyuluhan)?payload.penyuluhan:[]).filter(x=>
+                        normalizeWilayah(x?.desa)===userDesa &&
+                        normalizeWilayah(x?.kecamatan)===userKec
+                    );
+                    // Rekap & Analisis Kepuasan Layanan adalah rekap kabupaten,
+                    // sehingga Paralegal melihat seluruh responden, bukan desanya saja.
+                    window.databaseKepuasan=Array.isArray(payload.kepuasan)?payload.kepuasan:[];
+                }
+            }else if(role==='admin'){
+                window.databaseKasus=serverKasus;
+                window.databasePenyuluhan=Array.isArray(payload.penyuluhan)?payload.penyuluhan:[];
+                window.databaseKepuasan=Array.isArray(payload.kepuasan)?payload.kepuasan:[];
+            }else{
+                throw new Error('Role internal tidak valid.');
+            }
+
+            window.dashboardSummary=payload.summary||{};
+            // Global-only dashboard widgets must remain identical to Super Admin:
+            // satisfaction, counseling-by-district, and the 2026 county trend.
+            window.globalDashboardSummary=payload.globalSummary||payload.summary||{};
+            window.databaseBerita=Array.isArray(payload.berita)?payload.berita:[];
+            window.databaseParalegal=Array.isArray(payload.paralegal)?payload.paralegal:[];
+            updateDashboardStatsAndCharts();
+            const scope=document.getElementById('dashboard-scope-label');
+            if(scope){
+                scope.textContent=role==='admin'
+                    ?'Rekapitulasi seluruh data kasus dan pelayanan Posbankum Desa/Kelurahan se-Kabupaten Tanah Laut.'
+                    :`Rekapitulasi kasus dan pelayanan Posbankum khusus ${window.currentUser?.desa||'desa/paralegal Anda'}${window.currentUser?.kecamatan?`, Kecamatan ${window.currentUser.kecamatan}`:''}.`;
+            }
+        }
         // Chart.js instances kept globally so every refresh can safely destroy
         // the previous chart before creating a new one.
         let chartJenisKasusInstance = null;
@@ -3476,7 +3544,7 @@ function openSIPOSPDF(type){
             panel.classList.remove('hidden');
             const kritikWrap=panel.querySelector('#kepuasan-kritik-list')?.closest('.rounded-2xl');
             if(kritikWrap) kritikWrap.classList.remove('hidden');
-            const publicAgg=window.dashboardSummary?.kepuasanPublik||{};
+            const publicAgg=(window.globalDashboardSummary?.kepuasanPublik||window.dashboardSummary?.kepuasanPublik||{});
             const rows=((window.databaseKepuasan||[]).length ? window.databaseKepuasan : (publicAgg.records||[])).filter(x=>x && Number(x.rating)>=1&&Number(x.rating)<=5);
             const total=rows.length; const avg=total?rows.reduce((n,x)=>n+Number(x.rating||0),0)/total:0;
             const positive=total?Math.round(rows.filter(x=>Number(x.rating)>=4).length/total*100):0;
@@ -3495,7 +3563,7 @@ function openSIPOSPDF(type){
         }
 
         function printKepuasanAdmin(){
-            const publicAgg=window.dashboardSummary?.kepuasanPublik||{};
+            const publicAgg=(window.globalDashboardSummary?.kepuasanPublik||window.dashboardSummary?.kepuasanPublik||{});
             const rows=((window.databaseKepuasan||[]).length?window.databaseKepuasan:(publicAgg.records||[])).filter(x=>x&&Number(x.rating)>=1&&Number(x.rating)<=5);
             const selectedDesa=document.getElementById('kepuasan-admin-desa-filter')?.value||'';
             const data=rows.filter(x=>!selectedDesa||String(x.desa||'')===selectedDesa);
@@ -3554,36 +3622,44 @@ function openSIPOSPDF(type){
         }
 
         function syncTrendKasusWithDashboardTotal() {
-            const totalEl = document.getElementById('stat-total-kasus');
-            const trendEl = document.getElementById('tren-2026');
-            let total = 0;
-            if (totalEl) {
-                const m = String(totalEl.textContent || '').match(/\d+/);
-                total = m ? Number(m[0]) : 0;
-            }
-            if (!total && window.dashboardSummary) total = Number(window.dashboardSummary.totalKasus || 0);
-            if (!total && Array.isArray(window.databaseKasus)) total = window.databaseKasus.length;
-            if (trendEl) trendEl.textContent = String(total);
-            if (typeof chartTrenInstance !== 'undefined' && chartTrenInstance && chartTrenInstance.data && chartTrenInstance.data.datasets && chartTrenInstance.data.datasets[0]) {
-                chartTrenInstance.data.datasets[0].data = [249, 265, total];
+            // 2026 trend is Kabupaten-wide for every role; it must NOT be replaced
+            // by the Paralegal village total.
+            const source=window.globalDashboardSummary||window.dashboardSummary||{};
+            const trend2026=Number(source.trenTahunan?.['2026']??source.trenTahunan?.[2026]??0);
+            const trendEl=document.getElementById('tren-2026');
+            if(trendEl) trendEl.textContent=String(trend2026);
+            if(typeof chartTrenInstance!=='undefined' && chartTrenInstance && chartTrenInstance.data && chartTrenInstance.data.datasets && chartTrenInstance.data.datasets[0]){
+                chartTrenInstance.data.datasets[0].data=[249,265,trend2026];
                 chartTrenInstance.update('none');
             }
-            return total;
         }
 
         function updateDashboardStatsAndCharts() {
             if(window.dashboardSummary){
                 const d=window.dashboardSummary||{};
                 const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
-                setText('stat-total-kasus',Number(d.totalKasus||0)+' Kasus');
-                const metodeTitle=document.getElementById('chart-metode-title');
-                if(metodeTitle) metodeTitle.textContent=`Metode Penyelesaian Kasus dari ${Number(d.totalKasus||0) || 0} Kasus`;
-
-                // Sumber chart diprioritaskan dari data kasus yang benar-benar dimuat
-                // untuk role aktif. Ini penting agar Paralegal tidak bergantung hanya
-                // pada agregat Super Admin. Untuk Tamu/Pimpinan, gunakan agregat publik.
+                const activeRole=String(window.currentUser?.role||'').trim().toLowerCase();
+                const isInternalRole=activeRole==='admin' || activeRole==='paralegal';
+                // Global-only widgets intentionally use the same aggregate source
+                // for Super Admin, Paralegal, Tamu and Pimpinan.
+                const globalD=isInternalRole ? (window.globalDashboardSummary||{}) : d;
+                // Untuk user internal, sumber kebenaran dashboard adalah databaseKasus
+                // yang SUDAH di-scope oleh loadInternalData. Jangan memakai d.totalKasus
+                // karena itu dapat berupa agregat seluruh kabupaten.
                 const roleKasus=Array.isArray(window.databaseKasus)?window.databaseKasus:[];
-                const roleHasCases=roleKasus.length>0;
+                const useScopedCases=isInternalRole;
+                // INTERNAL: never read d.totalKasus/d.konsultasi/etc. for case cards.
+                // All case metrics come from the already-scoped case dataset.
+                const totalKasus=useScopedCases ? roleKasus.length : Number(d.totalKasus||0);
+                setText('stat-total-kasus',totalKasus+' Kasus');
+                const scopeBadge=document.getElementById('dashboard-scope-label');
+                if(scopeBadge && activeRole==='paralegal') scopeBadge.textContent=`Data Dashboard & Statistik khusus ${window.currentUser?.desa||'desa/paralegal Anda'}${window.currentUser?.kecamatan?`, Kecamatan ${window.currentUser.kecamatan}`:''}.`;
+                const metodeTitle=document.getElementById('chart-metode-title');
+                if(metodeTitle) metodeTitle.textContent=`Metode Penyelesaian Kasus dari ${totalKasus || 0} Kasus`;
+
+                // Untuk Super Admin dan Paralegal seluruh kartu + diagram kasus
+                // dihitung dari dataset sesuai kewenangan role. Untuk publik,
+                // tetap gunakan agregat publicContent.
                 const roleJenisCount={};
                 const roleMetodeCount={Berjalan:0,Konsultasi:0,Mediasi:0,Rujukan:0,Dihentikan:0};
                 roleKasus.forEach(item=>{
@@ -3596,13 +3672,12 @@ function openSIPOSPDF(type){
                     else if(st.includes('rujukan')) roleMetodeCount.Rujukan++;
                     else if(st.includes('dihentikan')) roleMetodeCount.Dihentikan++;
                 });
-                const totalKasus=roleHasCases?roleKasus.length:Number(d.totalKasus||0);
-                const kasusBerjalan=roleHasCases ? roleKasus.filter(x=>String(x?.statusKasus||x?.status||'').trim().toLowerCase()==='kasus berjalan').length : Number(d.kasusBerjalan||0);
+                const kasusBerjalan=useScopedCases ? roleKasus.filter(x=>String(x?.statusKasus||x?.status||'').trim().toLowerCase()==='kasus berjalan').length : Number(d.kasusBerjalan||0);
                 const pct=(n)=>totalKasus?((Number(n||0)/totalKasus)*100).toFixed(1):'0.0';
-                const konsultasi=roleHasCases?roleMetodeCount.Konsultasi:Number(d.konsultasi||0);
-                const mediasi=roleHasCases?roleMetodeCount.Mediasi:Number(d.mediasi||0);
-                const rujukan=roleHasCases?roleMetodeCount.Rujukan:Number(d.rujukan||0);
-                const dihentikan=roleHasCases?roleMetodeCount.Dihentikan:Number(d.dihentikan||0);
+                const konsultasi=useScopedCases?roleMetodeCount.Konsultasi:Number(d.konsultasi||0);
+                const mediasi=useScopedCases?roleMetodeCount.Mediasi:Number(d.mediasi||0);
+                const rujukan=useScopedCases?roleMetodeCount.Rujukan:Number(d.rujukan||0);
+                const dihentikan=useScopedCases?roleMetodeCount.Dihentikan:Number(d.dihentikan||0);
                 setText('stat-kasus-berjalan',kasusBerjalan+' Kasus');
                 setText('stat-kasus-berjalan-persen',pct(kasusBerjalan)+'% dari total kasus');
                 setText('stat-konsultasi',konsultasi+' Kasus');
@@ -3614,7 +3689,7 @@ function openSIPOSPDF(type){
                 setText('stat-dihentikan',dihentikan+' Kasus');
                 setText('stat-dihentikan-persen',pct(dihentikan)+'% dari total kasus');
                 const jenis=d.jenisKasusAgregat||d.jenisKasus||d.jenisKasusCount||{};
-                const jenisSource=roleHasCases?roleJenisCount:jenis;
+                const jenisSource=useScopedCases?roleJenisCount:jenis;
                 const jenisLabels=Object.keys(jenisSource);
                 const jenisValues=jenisLabels.map(k=>Number(jenisSource[k]||0));
                 const labelAndPercentagePlugin={id:'publicLabelPercentage',afterDatasetsDraw(chart){const ctx=chart.ctx;chart.data.datasets.forEach((ds,di)=>{const meta=chart.getDatasetMeta(di);const total=ds.data.reduce((a,b)=>a+Number(b||0),0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);if(!val)return;const pct=total?((val/total)*100).toFixed(1)+'%':'0%';const txt=`${val} (${pct})`;const pos=el.tooltipPosition();ctx.save();ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';const w=ctx.measureText(txt).width;ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(pos.x-w/2-3,pos.y-8,w+6,16);ctx.fillStyle='#0f172a';ctx.fillText(txt,pos.x,pos.y);ctx.restore();});});}};
@@ -3625,7 +3700,7 @@ function openSIPOSPDF(type){
                 const cStatus=document.getElementById('chartMetodePenyelesaian');
                 if(cStatus){
                     if(chartStatusInstance)chartStatusInstance.destroy();
-                    const vals=roleHasCases
+                    const vals=useScopedCases
                         ? [roleMetodeCount.Berjalan,roleMetodeCount.Konsultasi,roleMetodeCount.Mediasi,roleMetodeCount.Rujukan,roleMetodeCount.Dihentikan]
                         : [Number(d.kasusBerjalan||0),Number(d.konsultasi||0),Number(d.mediasi||0),Number(d.rujukan||0),Number(d.dihentikan||0)];
                     chartStatusInstance=new Chart(cStatus,{type:'bar',data:{labels:['Kasus Berjalan','Konsultasi','Mediasi','Rujukan','Dihentikan'],datasets:[{label:'Jumlah Kasus',data:vals,backgroundColor:['#f59e0b','#3b82f6','#10b981','#6366f1','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});
@@ -3634,7 +3709,7 @@ function openSIPOSPDF(type){
                 // Kepuasan: gunakan agregat server terlebih dahulu, lalu fallback ke records.
                 // Ini mencegah kartu Dashboard kembali 0 saat struktur payload berbeda antara
                 // publicContent/internalDashboard atau saat cache belum memuat records.
-                const kep=d.kepuasanPublik||d.kepuasanAgregat||d.kepuasan||{};
+                const kep=globalD.kepuasanPublik||globalD.kepuasanAgregat||globalD.kepuasan||{};
                 const recordsKep=Array.isArray(window.databaseKepuasan)
                     ? window.databaseKepuasan.filter(x=>x&&Number(x.rating)>=1&&Number(x.rating)<=5)
                     : [];
@@ -3684,13 +3759,14 @@ function openSIPOSPDF(type){
                 // Semua role (Tamu/Pimpinan, Paralegal, Super Admin) harus menerima
                 // agregat yang sama dari SELURUH sheet PENYULUHAN, bukan dataset tabel
                 // yang mungkin dibatasi berdasarkan kewenangan Paralegal.
-                const perKec=d.penyuluhanPerKecamatan||{}; const labelsPenyuluhan=Object.keys(REGIONAL_DATA||{}); const valuesPenyuluhan=labelsPenyuluhan.map(k=>Number(perKec[k]||0)); const totalPenyuluhan=valuesPenyuluhan.reduce((sum,val)=>sum+val,0); const totalPenyuluhanEl=document.getElementById('stat-total-penyuluhan'); if(totalPenyuluhanEl) totalPenyuluhanEl.textContent=String(totalPenyuluhan); chartPenyuluhanInstance=new Chart(c3,{type:'bar',data:{labels:labelsPenyuluhan,datasets:[{label:'Kegiatan Penyuluhan',data:valuesPenyuluhan,backgroundColor:'#0f766e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[{id:'guestPenyuluhanLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const ds=chart.data.datasets[0];const meta=chart.getDatasetMeta(0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);ctx.save();ctx.fillStyle='#0f172a';ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.fillText(String(val),el.x,el.y-6);ctx.restore();});}}]});}
+                const perKec=globalD.penyuluhanPerKecamatan||{}; const labelsPenyuluhan=Object.keys(REGIONAL_DATA||{}); const valuesPenyuluhan=labelsPenyuluhan.map(k=>Number(perKec[k]||0)); const totalPenyuluhan=valuesPenyuluhan.reduce((sum,val)=>sum+val,0); const totalPenyuluhanEl=document.getElementById('stat-total-penyuluhan'); if(totalPenyuluhanEl) totalPenyuluhanEl.textContent=String(totalPenyuluhan); chartPenyuluhanInstance=new Chart(c3,{type:'bar',data:{labels:labelsPenyuluhan,datasets:[{label:'Kegiatan Penyuluhan',data:valuesPenyuluhan,backgroundColor:'#0f766e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[{id:'guestPenyuluhanLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const ds=chart.data.datasets[0];const meta=chart.getDatasetMeta(0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);ctx.save();ctx.fillStyle='#0f172a';ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.fillText(String(val),el.x,el.y-6);ctx.restore();});}}]});}
 
+                const trend2026=Number(globalD.trenTahunan?.['2026']??globalD.trenTahunan?.[2026]??0);
                 const c2=document.getElementById('chartTrenKasus');
-                if(c2){if(chartTrenInstance)chartTrenInstance.destroy();chartTrenInstance=new Chart(c2,{type:'bar',data:{labels:['2024','2025','2026'],datasets:[{label:'Total Kasus Masuk',data:[249,265,totalKasus],backgroundColor:['#cbd5e1','#94a3b8','#f59e0b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
+                if(c2){if(chartTrenInstance)chartTrenInstance.destroy();chartTrenInstance=new Chart(c2,{type:'bar',data:{labels:['2024','2025','2026'],datasets:[{label:'Total Kasus Masuk',data:[249,265,trend2026],backgroundColor:['#cbd5e1','#94a3b8','#f59e0b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}},plugins:[labelAndPercentagePlugin]});}
                 setText('tren-2024','249');
                 setText('tren-2025','265');
-                setText('tren-2026',String(totalKasus));
+                setText('tren-2026',String(trend2026));
                 syncTrendKasusWithDashboardTotal();
                 return;
             }
@@ -3837,16 +3913,17 @@ function openSIPOSPDF(type){
             }
 
             const ctxTren = document.getElementById('chartTrenKasus');
+            const globalTrend2026=Number((window.globalDashboardSummary||window.dashboardSummary||{}).trenTahunan?.['2026']??(window.globalDashboardSummary||window.dashboardSummary||{}).trenTahunan?.[2026]??0);
             setText('tren-2024','249');
             setText('tren-2025','265');
-            setText('tren-2026',String(totalKasus));
+            setText('tren-2026',String(globalTrend2026));
             if (ctxTren) {
                 if (chartTrenInstance) chartTrenInstance.destroy();
                 chartTrenInstance = new Chart(ctxTren, {
                     type: 'bar',
                     data: {
                         labels: ['2024', '2025', '2026'],
-                        datasets: [{ label: 'Total Kasus Masuk', data: [249, 265, totalKasus], backgroundColor: ['#cbd5e1', '#94a3b8', '#f59e0b'] }]
+                        datasets: [{ label: 'Total Kasus Masuk', data: [249, 265, globalTrend2026], backgroundColor: ['#cbd5e1', '#94a3b8', '#f59e0b'] }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
                     plugins: [labelAndPercentagePlugin]
