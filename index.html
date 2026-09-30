@@ -361,6 +361,42 @@ document.addEventListener('keydown',function(e){
 #app-sidebar.sidebar-collapsed .sidebar-toggle-row{justify-content:space-between !important;align-items:center !important;}
 @media(max-width:767px){.sidebar-hover-logo{display:none !important;}}
 </style>
+
+<style id="rekap-kasus-print-fix-v8">
+/* Print fix Rekap Kasus Masuk: pertahankan ukuran kertas browser, rapikan agar tabel muat halaman. */
+@media print {
+  body.print-rekap-kasus { background:#fff !important; }
+  body.print-rekap-kasus #main-app > aside,
+  body.print-rekap-kasus #main-app > header,
+  body.print-rekap-kasus .no-print { display:none !important; }
+  body.print-rekap-kasus #main-app main > .tab-content:not(#tab-jumlah-kasus) { display:none !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus { display:block !important; margin:0 !important; padding:0 !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus > div { box-shadow:none !important; border-radius:0 !important; padding:0 !important; margin:0 !important; }
+  body.print-rekap-kasus #print-kop-surat { display:block !important; margin:0 0 3mm !important; padding:0 0 2.5mm !important; border-bottom:1.5px solid #111827 !important; break-inside:avoid; page-break-inside:avoid; }
+  body.print-rekap-kasus #print-kop-surat .print-kop-logo { width:14mm !important; height:14mm !important; margin:0 auto 1mm !important; }
+  body.print-rekap-kasus #print-kop-surat h4 { font-size:8pt !important; line-height:1.15 !important; }
+  body.print-rekap-kasus #print-kop-surat h3 { font-size:9pt !important; line-height:1.15 !important; }
+  body.print-rekap-kasus #print-kop-surat h2 { font-size:10pt !important; line-height:1.15 !important; }
+  body.print-rekap-kasus #print-kop-surat p { font-size:6.5pt !important; line-height:1.25 !important; margin-top:1mm !important; }
+  body.print-rekap-kasus #print-kop-surat > div.mt-4 { margin-top:2mm !important; }
+  body.print-rekap-kasus #print-kop-surat > div.mt-4 h3 { font-size:8pt !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus .overflow-x-auto { overflow:visible !important; border-radius:0 !important; width:100% !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus table { width:100% !important; table-layout:fixed !important; border-collapse:collapse !important; font-size:6.5pt !important; line-height:1.2 !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus thead { display:table-header-group !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus tr { break-inside:avoid !important; page-break-inside:avoid !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th,
+  body.print-rekap-kasus #tab-jumlah-kasus td { padding:1.2mm 1mm !important; border:0.25mm solid #cbd5e1 !important; white-space:normal !important; overflow-wrap:anywhere !important; word-break:normal !important; vertical-align:top !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th { font-size:6.2pt !important; line-height:1.15 !important; background:#f1f5f9 !important; color:#0f172a !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th:nth-child(1), body.print-rekap-kasus #tab-jumlah-kasus td:nth-child(1) { width:12% !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th:nth-child(2), body.print-rekap-kasus #tab-jumlah-kasus td:nth-child(2) { width:11% !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th:nth-child(3), body.print-rekap-kasus #tab-jumlah-kasus td:nth-child(3) { width:17% !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th:nth-child(4), body.print-rekap-kasus #tab-jumlah-kasus td:nth-child(4) { width:19% !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th:nth-child(5), body.print-rekap-kasus #tab-jumlah-kasus td:nth-child(5) { width:18% !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th:nth-child(6), body.print-rekap-kasus #tab-jumlah-kasus td:nth-child(6) { width:23% !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus th:nth-child(7), body.print-rekap-kasus #tab-jumlah-kasus td:nth-child(7) { display:none !important; }
+  body.print-rekap-kasus #tab-jumlah-kasus td:nth-child(6) select { appearance:none !important; -webkit-appearance:none !important; border:0 !important; padding:0 !important; margin:0 !important; width:100% !important; background:transparent !important; color:#111827 !important; font:inherit !important; white-space:normal !important; }
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col text-slate-800 bg-slate-50">
 <script>
@@ -3485,7 +3521,15 @@ function openSIPOSPDF(type){
             syncTrendKasusWithDashboardTotal();
             setTimeout(function(){ window.print(); }, 180);
         }
-        function printWithKopSurat() { window.print(); }
+        function printWithKopSurat() {
+            // Mode cetak khusus Rekap Kasus Masuk agar tabel tidak terpotong.
+            document.body.classList.add('print-rekap-kasus');
+            const cleanup = () => document.body.classList.remove('print-rekap-kasus');
+            window.addEventListener('afterprint', cleanup, { once: true });
+            setTimeout(function(){ window.print(); }, 80);
+            // Fallback bila browser tidak memicu afterprint.
+            setTimeout(cleanup, 3000);
+        }
 
         function downloadExcelWithKopSurat() {
             let csvContent = "\ufeff"; 
