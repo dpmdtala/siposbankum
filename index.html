@@ -2865,7 +2865,7 @@ function openSIPOSPDF(type){
             }));
         }
 
-        async function handlePenyuluhanSubmit(e){e.preventDefault();const f=document.getElementById('penyuluhan-foto');let file=null;if(f?.files?.[0])file=await readFileAsPayload(f.files[0]);const data={tanggal:document.getElementById('penyuluhan-tanggal').value,kecamatan:document.getElementById('penyuluhan-kecamatan').value,desa:document.getElementById('penyuluhan-desa').value,petugas:document.getElementById('penyuluhan-petugas').value.trim(),tema:document.getElementById('penyuluhan-tema').value,metode:document.getElementById('penyuluhan-metode').value,sasaran:document.getElementById('penyuluhan-sasaran').value,lokasi:document.getElementById('penyuluhan-lokasi').value.trim(),materi:document.getElementById('penyuluhan-materi').value.trim(),hasil:document.getElementById('penyuluhan-hasil').value.trim(),status:document.getElementById('penyuluhan-status').value,file};try{const result=await apiRequest('createCounseling',data);persistSession_();alert('Data penyuluhan berhasil disimpan.');document.getElementById('form-penyuluhan').reset();await loadInternalData();renderPenyuluhanTable();updateDashboardStatsAndCharts();switchTab('penyuluhan');}catch(e){alert(e.message);}}
+        async function handlePenyuluhanSubmit(e){e.preventDefault();if(window.counselingSubmitInFlight)return;window.counselingSubmitInFlight=true;const submitBtn=e.submitter||document.querySelector('#form-penyuluhan button[type=submit]');const originalBtnHtml=submitBtn?.innerHTML||'';if(submitBtn){submitBtn.disabled=true;submitBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan kegiatan...';}const f=document.getElementById('penyuluhan-foto');let file=null;if(f?.files?.[0])file=await readFileAsPayload(f.files[0]);const data={tanggal:document.getElementById('penyuluhan-tanggal').value,kecamatan:document.getElementById('penyuluhan-kecamatan').value,desa:document.getElementById('penyuluhan-desa').value,petugas:document.getElementById('penyuluhan-petugas').value.trim(),tema:document.getElementById('penyuluhan-tema').value,metode:document.getElementById('penyuluhan-metode').value,sasaran:document.getElementById('penyuluhan-sasaran').value,lokasi:document.getElementById('penyuluhan-lokasi').value.trim(),materi:document.getElementById('penyuluhan-materi').value.trim(),hasil:document.getElementById('penyuluhan-hasil').value.trim(),status:document.getElementById('penyuluhan-status').value,file,clientRequestId:window.counselingSubmitRequestId||(window.counselingSubmitRequestId=crypto.randomUUID())};try{const result=await apiRequest('createCounseling',data,{timeoutMs:60000,retry:false});persistSession_();alert('Data penyuluhan berhasil disimpan.');document.getElementById('form-penyuluhan').reset();window.counselingSubmitRequestId=null;await loadInternalData();renderPenyuluhanTable();updateDashboardStatsAndCharts();switchTab('penyuluhan');}catch(e){alert(e.message);}finally{window.counselingSubmitInFlight=false;if(submitBtn){submitBtn.disabled=false;submitBtn.innerHTML=originalBtnHtml||'<i class="fa-solid fa-floppy-disk mr-2"></i>Simpan Kegiatan Penyuluhan';}}}
 
         function setupBeritaForm() {
             const wrap = document.getElementById('berita-admin-form-wrap');
@@ -4040,11 +4040,13 @@ function openSIPOSPDF(type){
                     statusKasus:document.getElementById('input-status-kasus').value,
                     file
                 };
-                const r=await apiRequest('createCase',payload,{timeoutMs:45000,retry:true});
+                payload.clientRequestId = window.caseSubmitRequestId || (window.caseSubmitRequestId=crypto.randomUUID());
+                const r=await apiRequest('createCase',payload,{timeoutMs:60000,retry:false});
                 const noReg=r?.data?.noReg || r?.data?.nomorRegistrasi || '-';
                 // createCase sudah sukses. Jangan membatalkan keberhasilan hanya karena refresh dashboard gagal.
                 alert(`Data kasus berhasil disimpan.\n\nNomor Registrasi: ${noReg}`);
                 form?.reset();
+                window.caseSubmitRequestId=null;
                 try {
                     await loadInternalData();
                     updateDashboardStatsAndCharts();
