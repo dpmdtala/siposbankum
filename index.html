@@ -422,6 +422,8 @@ document.addEventListener('keydown',function(e){
   .news-print-location{font-size:7.5pt;color:#475569;margin-bottom:2mm;}
   .news-print-body p{font-size:8.5pt;line-height:1.5;margin:2mm 0;text-align:justify;white-space:normal;overflow-wrap:anywhere;}
   .news-print-thumb{display:block;width:48mm;height:27mm;object-fit:cover;border:1px solid #cbd5e1;border-radius:1mm;margin:2mm 0;}
+  .news-print-photo{display:block;width:72mm;max-width:100%;height:auto;max-height:62mm;object-fit:contain;border:1px solid #cbd5e1;border-radius:1mm;margin:2mm 0;background:#f8fafc;}
+  .news-print-photo-missing{width:72mm;max-width:100%;min-height:18mm;display:flex;align-items:center;justify-content:center;text-align:center;border:1px dashed #cbd5e1;border-radius:1mm;margin:2mm 0;padding:3mm;font-size:7pt;color:#64748b;background:#f8fafc;}
   .news-print-youtube{font-size:7pt;color:#475569;overflow-wrap:anywhere;margin-top:1.5mm;}
   .news-print-author{font-size:7pt;color:#64748b;margin-top:2mm;}
   .news-print-footer{border-top:.3mm solid #cbd5e1;padding-top:2mm;margin-top:5mm;font-size:6.5pt;color:#64748b;text-align:center;}
@@ -3066,27 +3068,54 @@ function openSIPOSPDF(type){
                         ${lokasi ? `<p class="text-[10px] text-slate-500 mt-2"><i class="fa-solid fa-location-dot mr-1 text-emerald-600"></i>${escapeBeritaHtml(lokasi)}${x.lokasi ? ` • ${escapeBeritaHtml(x.lokasi)}` : ''}</p>` : ''}
                         <p class="text-xs text-slate-600 mt-3 leading-relaxed">${excerpt}</p>
                         ${youtubeId ? `<a href="${escapeBeritaHtml(getYouTubeWatchUrl_(x.youtubeUrl || x.youtube || x.videoUrl))}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-2 text-xs font-extrabold text-red-600 hover:text-red-700"><i class="fa-brands fa-youtube"></i> Tonton video YouTube</a>` : ''}
-                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between"><span class="text-[10px] text-slate-400">Dipublikasikan oleh <b>${escapeBeritaHtml(x.createdBy || 'Super Admin')}</b></span>${window.currentUser?.role === 'admin' ? `<div class="flex items-center gap-2"><button type="button" onclick="editBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-amber-600 hover:text-amber-700"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button><button type="button" onclick="deleteBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-red-500 hover:text-red-700"><i class="fa-solid fa-trash mr-1"></i>Hapus</button></div>` : ''}</div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between"><span class="text-[10px] text-slate-400">Dipublikasikan oleh <b>${escapeBeritaHtml(x.createdBy || 'Super Admin')}</b></span><div class="flex items-center gap-2 flex-wrap justify-end"><button type="button" onclick="printSingleBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-gov-700 hover:text-gov-800" title="Print berita ini"><i class="fa-solid fa-print mr-1"></i>Print</button>${window.currentUser?.role === 'admin' ? `<button type="button" onclick="editBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-amber-600 hover:text-amber-700"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button><button type="button" onclick="deleteBerita('${escapeBeritaHtml(x.noReg)}')" class="text-[10px] font-bold text-red-500 hover:text-red-700"><i class="fa-solid fa-trash mr-1"></i>Hapus</button>` : ''}</div></div>
                     </div>
                 </article>`;
             }).join('');
             hydrateNewsPhotos_();
         }
 
-        function printBeritaKegiatan(){
-            const q=(document.getElementById('search-berita')?.value||'').trim();
-            const category=document.getElementById('filter-berita-kategori')?.value||'';
-            let data=[...(window.databaseBerita||[])].sort((a,b)=>String(b.tanggal||'').localeCompare(String(a.tanggal||'')));
-            data=data.filter(x=>{
-                const hay=[x.judul,x.kategori,x.kecamatan,x.desa,x.lokasi,x.isi,x.youtubeUrl].join(' ').toLowerCase();
-                return (!q||hay.includes(q.toLowerCase()))&&(!category||x.kategori===category);
-            });
-            if(!data.length){alert('Tidak ada Berita / Kegiatan yang sesuai dengan pencarian atau filter.');return;}
+        function getNewsPrintPhotoMap_(items){
+            return (async()=>{
+                const urls=[...new Set(items.map(x=>String(x?.fotoUrl||'').trim()).filter(Boolean))];
+                const map=new Map();
+                if(!urls.length) return map;
+                for(let i=0;i<urls.length;i+=8){
+                    const chunk=urls.slice(i,i+8);
+                    try{
+                        const r=await apiRequest('getPublicMediaBatch',{urls:chunk},{timeoutMs:60000,retry:false});
+                        const data=r?.data?.items||{};
+                        Object.keys(data).forEach(url=>{
+                            const d=data[url];
+                            if(d?.base64&&d?.mimeType) map.set(url,`data:${d.mimeType};base64,${d.base64}`);
+                        });
+                    }catch(_){
+                        await Promise.all(chunk.map(async url=>{
+                            try{
+                                const r=await apiRequest('getPublicMedia',{url},{timeoutMs:60000,retry:false});
+                                const d=r?.data||{};
+                                if(d?.base64&&d?.mimeType) map.set(url,`data:${d.mimeType};base64,${d.base64}`);
+                            }catch(_){ }
+                        }));
+                    }
+                }
+                return map;
+            })();
+        }
 
+        async function printNewsRecords_(records, title='BERITA / KEGIATAN PARALEGAL', filterText=''){
+            const data=Array.isArray(records)?records.filter(Boolean):[];
+            if(!data.length){alert('Berita / Kegiatan yang dipilih tidak ditemukan.');return;}
             const esc=v=>escapeBeritaHtml(v==null?'':String(v));
+            const photoMap=await getNewsPrintPhotoMap_(data);
             const rows=data.map((x,i)=>{
                 const lokasi=[x.desa,x.kecamatan].filter(Boolean).join(' • ');
                 const yt=getYouTubeId_(x.youtubeUrl||x.youtube||x.videoUrl||'');
+                const photoUrl=String(x.fotoUrl||'').trim();
+                const photoSrc=photoMap.get(photoUrl)||'';
+                const photo=photoSrc
+                    ? `<img src="${photoSrc}" class="news-print-photo" alt="Dokumentasi berita">`
+                    : (photoUrl ? `<div class="news-print-photo-missing">Foto dokumentasi tidak dapat dimuat saat pencetakan.</div>` : '');
                 const thumb=yt?`<img src="https://img.youtube.com/vi/${encodeURIComponent(yt)}/hqdefault.jpg" class="news-print-thumb" alt="Thumbnail video">`:'';
                 return `<article class="news-print-item">
                     <div class="news-print-no">${i+1}</div>
@@ -3094,6 +3123,7 @@ function openSIPOSPDF(type){
                         <div class="news-print-meta"><b>${esc(x.kategori||'Berita')}</b><span>${esc(formatDateOnly_(x.tanggal))}</span></div>
                         <h2>${esc(x.judul||'-')}</h2>
                         ${lokasi||x.lokasi?`<div class="news-print-location">${esc(lokasi)}${x.lokasi?` • ${esc(x.lokasi)}`:''}</div>`:''}
+                        ${photo}
                         ${thumb}
                         <p>${esc(x.isi||'-').replace(/\n/g,'<br>')}</p>
                         ${yt?`<div class="news-print-youtube">Video YouTube: ${esc(getYouTubeWatchUrl_(x.youtubeUrl||x.youtube||x.videoUrl))}</div>`:''}
@@ -3114,8 +3144,8 @@ function openSIPOSPDF(type){
                         <div class="news-print-kop-system">SISTEM INFORMASI POS BANTUAN HUKUM (SI-POSBANKUM)</div>
                         <div class="news-print-kop-address">Komplek Perkantoran Pemerintah Kabupaten Tanah Laut, Pelaihari</div>
                     </div>
-                    <div class="news-print-title">BERITA / KEGIATAN PARALEGAL</div>
-                    <div class="news-print-filter">${category?`Kategori: <b>${esc(category)}</b> &nbsp; | &nbsp; `:''}${q?`Pencarian: <b>${esc(q)}</b> &nbsp; | &nbsp; `:''}Jumlah data: <b>${data.length}</b></div>
+                    <div class="news-print-title">${esc(title)}</div>
+                    <div class="news-print-filter">${filterText?filterText+' &nbsp; | &nbsp; ':''}Jumlah data: <b>${data.length}</b></div>
                 </div>
                 <div class="news-print-list">${rows}</div>
                 <div class="news-print-footer">Dicetak dari SI-POSBANKUM Kabupaten Tanah Laut • ${new Date().toLocaleString('id-ID')}</div>`;
@@ -3128,6 +3158,38 @@ function openSIPOSPDF(type){
             };
             window.addEventListener('afterprint',cleanup);
             setTimeout(()=>window.print(),150);
+        }
+
+        async function printSingleBerita(noReg){
+            const key=String(noReg||'').trim();
+            const item=(window.databaseBerita||[]).find(x=>String(x.noReg||'').trim()===key);
+            if(!item){alert('Berita / Kegiatan tidak ditemukan.');return;}
+            const btns=[...document.querySelectorAll('button[onclick*="printSingleBerita"]')];
+            btns.forEach(btn=>{ if(btn.getAttribute('onclick')?.includes(`'${key}'`)){ btn.disabled=true; btn.dataset.oldHtml=btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin mr-1"></i>Menyiapkan'; }});
+            try{
+                await printNewsRecords_([item],`BERITA / KEGIATAN PARALEGAL — ${item.judul||'Tanpa Judul'}`,`No. Registrasi: <b>${escapeBeritaHtml(item.noReg||'-')}</b>`);
+            }finally{
+                btns.forEach(btn=>{ if(btn.dataset.oldHtml){btn.disabled=false;btn.innerHTML=btn.dataset.oldHtml;delete btn.dataset.oldHtml;} });
+            }
+        }
+
+        async function printBeritaKegiatan(){
+            const q=(document.getElementById('search-berita')?.value||'').trim();
+            const category=document.getElementById('filter-berita-kategori')?.value||'';
+            let data=[...(window.databaseBerita||[])].sort((a,b)=>String(b.tanggal||'').localeCompare(String(a.tanggal||'')));
+            data=data.filter(x=>{
+                const hay=[x.judul,x.kategori,x.kecamatan,x.desa,x.lokasi,x.isi,x.youtubeUrl].join(' ').toLowerCase();
+                return (!q||hay.includes(q.toLowerCase()))&&(!category||x.kategori===category);
+            });
+            if(!data.length){alert('Tidak ada Berita / Kegiatan yang sesuai dengan pencarian atau filter.');return;}
+            const btn=document.querySelector('button[onclick="printBeritaKegiatan()"]');
+            if(btn){btn.disabled=true;btn.dataset.oldHtml=btn.innerHTML;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan print...';}
+            try{
+                const filters=`${category?`Kategori: <b>${escapeBeritaHtml(category)}</b> &nbsp; | &nbsp; `:''}${q?`Pencarian: <b>${escapeBeritaHtml(q)}</b> &nbsp; | &nbsp; `:''}`;
+                await printNewsRecords_(data,'BERITA / KEGIATAN PARALEGAL',filters);
+            }finally{
+                if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.oldHtml||'<i class="fa-solid fa-print"></i> Print';delete btn.dataset.oldHtml;}
+            }
         }
 
         async function deleteBerita(noReg){if(window.currentUser?.role!=='admin')return;if(!confirm('Hapus berita ini?'))return;try{await apiRequest('deleteBerita',{noReg});await loadInternalData();renderBeritaList();}catch(e){alert(e.message);}}
