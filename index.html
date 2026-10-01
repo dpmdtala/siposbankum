@@ -1,15 +1,13 @@
 
 
 
-
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta name="application-version" content="3.0-paralegal-data-scope">
+    <meta name="application-version" content="9.0-paralegal-data-scope">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SI-POSBANKUM V3.0 - Sistem Informasi Pos Bantuan Hukum Desa</title>
+    <title>SI-POSBANKUM V.9 - Sistem Informasi Pos Bantuan Hukum Desa</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -3065,7 +3063,63 @@ function openSIPOSPDF(type){
             form.scrollIntoView({behavior:'smooth',block:'start'});
         }
 
-        async function handleBeritaSubmit(e){e.preventDefault();if(window.currentUser?.role!=='admin'){alert('Hanya Super Admin.');return;}const f=document.getElementById('berita-foto');let file=null;if(f?.files?.[0])file=await readFileAsPayload(f.files[0]);const youtubeUrl=document.getElementById('berita-youtube')?.value.trim()||'';if(youtubeUrl&&!getYouTubeId_(youtubeUrl)){alert('Link YouTube tidak valid. Gunakan link youtube.com/watch?v=... atau youtu.be/...');return;}const editNoReg=document.getElementById('berita-edit-noreg')?.value.trim()||'';const data={noReg:editNoReg,tanggal:document.getElementById('berita-tanggal').value,judul:document.getElementById('berita-judul').value.trim(),kategori:document.getElementById('berita-kategori').value,kecamatan:document.getElementById('berita-kecamatan').value,desa:document.getElementById('berita-desa').value,lokasi:document.getElementById('berita-lokasi').value.trim(),isi:document.getElementById('berita-isi').value.trim(),youtubeUrl,file};try{await apiRequest(editNoReg?'updateNews':'createNews',data);alert(editNoReg?'Berita berhasil diperbarui.':'Berita berhasil dipublikasikan.');resetBeritaForm();await loadInternalData();renderBeritaList();}catch(e){alert(e.message);}}
+        async function handleBeritaSubmit(e){
+            e.preventDefault();
+            if(window.currentUser?.role!=='admin'){alert('Hanya Super Admin.');return;}
+            if(window.beritaSubmitInFlight)return;
+            window.beritaSubmitInFlight=true;
+            const submitBtn=e.submitter||document.getElementById('berita-submit-btn');
+            const originalBtnHtml=submitBtn?.innerHTML||'';
+            const editNoReg=String(document.getElementById('berita-edit-noreg')?.value||'').trim();
+            const isEdit=!!editNoReg;
+            const f=document.getElementById('berita-foto');
+            let file=null;
+            try{
+                if(f?.files?.[0]) file=await readFileAsPayload(f.files[0]);
+                const youtubeUrl=document.getElementById('berita-youtube')?.value.trim()||'';
+                if(youtubeUrl&&!getYouTubeId_(youtubeUrl)) throw new Error('Link YouTube tidak valid. Gunakan link youtube.com/watch?v=... atau youtu.be/...');
+                if(isEdit && !editNoReg) throw new Error('No. Registrasi berita tidak ditemukan. Silakan buka ulang tombol Edit.');
+                const data={
+                    noReg:editNoReg,
+                    recordKey:editNoReg,
+                    tanggal:document.getElementById('berita-tanggal').value,
+                    judul:document.getElementById('berita-judul').value.trim(),
+                    kategori:document.getElementById('berita-kategori').value,
+                    kecamatan:document.getElementById('berita-kecamatan').value,
+                    desa:document.getElementById('berita-desa').value,
+                    lokasi:document.getElementById('berita-lokasi').value.trim(),
+                    isi:document.getElementById('berita-isi').value.trim(),
+                    youtubeUrl
+                };
+                if(file) data.file=file;
+                if(submitBtn){submitBtn.disabled=true;submitBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';}
+                const action=isEdit?'updateNews':'createNews';
+                const result=await apiRequest(action,data,{timeoutMs:60000,retry:false});
+                if(!result?.ok) throw new Error(result?.message||'Data berita gagal disimpan.');
+
+                // Perbarui data lokal langsung dari respons server agar hasil edit langsung terlihat,
+                // tanpa menunggu refresh penuh dan tanpa menghapus sesi pengguna.
+                if(isEdit){
+                    const idx=(window.databaseBerita||[]).findIndex(x=>String(x.noReg||'').trim()===editNoReg);
+                    const returned=result?.data?.record||{};
+                    if(idx>=0) window.databaseBerita[idx]={...window.databaseBerita[idx],...data,...returned};
+                }else if(result?.data?.record){
+                    window.databaseBerita=[...(window.databaseBerita||[]),result.data.record];
+                }
+                persistSession_();
+                alert(isEdit?'Berita berhasil diperbarui.':'Berita berhasil dipublikasikan.');
+                resetBeritaForm();
+                renderBeritaList();
+                // Sinkronisasi server dilakukan setelah UI sudah diperbarui. Jika sinkronisasi gagal,
+                // jangan menganggap penyimpanan gagal karena transaksi update sudah berhasil di server.
+                loadInternalData().then(()=>renderBeritaList()).catch(err=>console.warn('Sinkronisasi berita setelah simpan tertunda:',err));
+            }catch(e){
+                alert(e?.message||'Berita gagal disimpan. Perubahan tidak dianggap berhasil.');
+            }finally{
+                window.beritaSubmitInFlight=false;
+                if(submitBtn){submitBtn.disabled=false;submitBtn.innerHTML=originalBtnHtml||'<i class="fa-solid fa-paper-plane mr-1"></i> Publikasikan Berita';}
+            }
+        }
 
         function previewLoginPageImage(e) {
             const file = e.target.files?.[0];
