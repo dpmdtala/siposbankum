@@ -4,10 +4,10 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta name="application-version" content="3.0-paralegal-data-scope">
+    <meta name="application-version" content="9.0-paralegal-data-scope">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SI-POSBANKUM V3.0 - Sistem Informasi Pos Bantuan Hukum Desa</title>
+    <title>SI-POSBANKUM V.9 - Sistem Informasi Pos Bantuan Hukum Desa</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -924,10 +924,10 @@ function openSIPOSPDF(type){
                                     <div>
                                         <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kasus Hukum <span class="text-red-500">*</span></label>
                                         <select id="input-jenis-kasus" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white outline-none">
-                                            <option value="Perdata - Sengketa Tanah">Perdata - Sengketa Tanah</option>
-                                            <option value="Perdata - Waris">Perdata - Waris & Keluarga</option>
-                                            <option value="Pidana - Penganiayaan">Pidana - Penganiayaan</option>
-                                            <option value="Pidana - KDRT">Pidana - KDRT</option>
+                                            <option value="Perdata - Sengketa Tanah">Sengketa Tanah</option>
+                                            <option value="Perdata - Waris">Sengketa Waris & Keluarga</option>
+                                            <option value="Pidana - Penganiayaan">Penganiayaan</option>
+                                            <option value="Pidana - KDRT">KDRT</option>
                                             <option value="Lainnya">Lainnya</option>
                                         </select>
                                     </div>
@@ -1140,9 +1140,6 @@ function openSIPOSPDF(type){
                                     <p id="jumlah-kasus-subtitle" class="text-xs text-slate-500 mt-0.5">Menampilkan rekapitulasi kasus masuk.</p>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <button type="button" onclick="renderJumlahKasusTable()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-slate-200">
-                                        <i class="fa-solid fa-rotate"></i> Refresh
-                                    </button>
                                     <button type="button" onclick="printWithKopSurat()" class="px-3 py-2 bg-gov-700 hover:bg-gov-800 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
                                         <i class="fa-solid fa-print"></i> Print PDF
                                     </button>
@@ -1209,6 +1206,7 @@ function openSIPOSPDF(type){
                                             <th class="p-3">Pelapor</th>
                                             <th class="p-3">Desa / Kelurahan</th>
                                             <th class="p-3">Jenis Kasus</th>
+                                            <th class="p-3">Tindak Lanjut / Arahan Dinas PMD</th>
                                             <th class="p-3">Status Kasus (Edit)</th>
                                             <th class="p-3 text-center">Aksi</th>
                                         </tr>
@@ -1923,7 +1921,7 @@ function openSIPOSPDF(type){
             "Tambang Ulang": ["Bingkulu", "Gunung Raja", "Kayu Habang", "Martadah", "Martadah Baru", "Pulau Sari", "Sungai Jelai", "Sungai Pinang", "Tambang Ulang"]
         };
 
-        // SI-POSBANKUM V4.0 client/API layer
+        // SI-POSBANKUM V3.0 client/API layer
         window.SIPOSBANKUM_API_URL = 'https://script.google.com/macros/s/AKfycbyhqpPmK2bUbAQqm38Viiljcxtcc5XvemPmbp9bFUDTOt-sb0EdQ9y0_TmHfRuhGJ6l/exec';
         window.siposToken = null;
         window.currentUser = null;
@@ -1997,10 +1995,10 @@ function openSIPOSPDF(type){
             const x=String(v||'').replace(/^ACCESS_/,'').replace(/_/g,' ').toLowerCase();
             return x.replace(/\b\w/g,m=>m.toUpperCase());
         }
-        async function loadInternalData() {
-            const r=await apiRequest('internalDashboard');
+        async function loadInternalData(forceFresh=false) {
+            const r=await apiRequest('internalDashboard',{forceFresh:!!forceFresh},{retry:false,timeoutMs:60000});
             const payload=r?.data||{};
-            const serverKasus=Array.isArray(payload.kasus)?payload.kasus:[];
+            const serverKasus=(Array.isArray(payload.kasus)?payload.kasus:[]).filter(k=>k && Object.keys(k).some(key=>key && !String(key).startsWith('_') && String(k[key]??'').trim()!==''));
             const role=String(window.currentUser?.role||'').trim().toLowerCase();
             const normalizeWilayah=(v)=>String(v??'')
                 .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -2020,11 +2018,12 @@ function openSIPOSPDF(type){
 
                 // Jika server mengembalikan scope yang tidak cocok dengan akun,
                 // jangan tampilkan data kasus sama sekali.
-                const scopeValid=scope.role==='paralegal'
+                const scopeProvided=!!(scope && (scope.role || scope.desa || scope.kecamatan));
+                const scopeValid=!scopeProvided || (scope.role==='paralegal'
                     && serverDesa===userDesa
                     && serverKec===userKec
                     && !!userDesa
-                    && !!userKec;
+                    && !!userKec);
 
                 if(!scopeValid){
                     console.error('SI-POSBANKUM: scope server tidak cocok dengan akun Paralegal. Data internal dikunci.');
@@ -2599,21 +2598,28 @@ function openSIPOSPDF(type){
                 applyMenuVisibility();
                 setupRegionalDropdowns(); resetPenyuluhanForm(); setupBeritaForm(); setupSettingProfileForm(); setupKepuasanDropdowns(); updateOnlineCounter();
                 // Semua user selalu masuk ke Dashboard & Statistik setelah login.
-                switchTab('dashboard');
-                // Dashboard publik yang sudah dimuat saat halaman dibuka langsung dipakai.
-                updateDashboardStatsAndCharts(); renderParalegalGrid(); renderBeritaList();
+                // Untuk Super Admin/Paralegal, data internal dimuat terlebih dahulu
+                // agar Rekap Kasus Masuk sudah berisi data tanpa harus menekan Refresh.
                 lastSyncVersion = null;
-                startAutoRefresh();
-                // Muat data internal tanpa memblokir perpindahan ke aplikasi.
-                loadInternalData().then(()=>{
+                if(['admin','paralegal'].includes(String(window.currentUser?.role||'').toLowerCase())){
+                    try{
+                        await loadInternalData(false);
+                        updateDashboardStatsAndCharts();
+                        renderParalegalGrid();
+                        renderParalegalManagementTable();
+                        renderJumlahKasusTable();
+                        renderBeritaList();
+                    }catch(err){
+                        console.warn('Pemuatan data internal gagal:',err);
+                        alert('Data aplikasi berhasil dimuat, tetapi data internal belum dapat ditarik. Silakan coba tombol Refresh Data.\n\n'+(err?.message||err));
+                    }
+                }else{
                     updateDashboardStatsAndCharts();
                     renderParalegalGrid();
-                    renderParalegalManagementTable();
-                    renderJumlahKasusTable();
                     renderBeritaList();
-                    lastSyncVersion = null;
-                    refreshDataFromServer(true);
-                }).catch(err=>console.warn('Pemuatan data internal tertunda:', err));
+                }
+                switchTab('dashboard');
+                startAutoRefresh();
             } catch(err) { alert(err.message||'Login gagal.'); }
         }
 
@@ -3518,8 +3524,9 @@ function openSIPOSPDF(type){
 
             let filteredKasus = window.databaseKasus;
             if (window.currentUser && window.currentUser.role === 'paralegal') {
-                const userDesa = window.currentUser.desa.toLowerCase();
-                filteredKasus = window.databaseKasus.filter(k => k.desa && k.desa.toLowerCase() === userDesa);
+                const userDesa = normalizeWilayah(window.currentUser.desa);
+                const userKec = normalizeWilayah(window.currentUser.kecamatan);
+                filteredKasus = window.databaseKasus.filter(k => normalizeWilayah(k.desa) === userDesa && normalizeWilayah(k.kecamatan) === userKec);
                 subtitle.textContent = `Menampilkan jumlah kasus masuk khusus wilayah ${window.currentUser.desa}, Kecamatan ${window.currentUser.kecamatan}.`;
                 badge.textContent = `Desa: ${window.currentUser.desa}`;
             } else {
@@ -3567,11 +3574,12 @@ function openSIPOSPDF(type){
                 const currentStatus = item.statusKasus || 'Kasus Berjalan';
                 html += `
                 <tr class="hover:bg-slate-50 border-b border-slate-100">
-                    <td class="p-3 font-mono font-bold text-emerald-800">${item.noReg}</td>
+                    <td class="p-3 font-mono font-bold text-emerald-800">${escapeHtml(item.noReg || `Data Lama #${item._sheetRow || ""}`)}</td>
                     <td class="p-3">${formatDateOnly_(item.tglPelaporan || item.tanggal)}</td>
                     <td class="p-3 font-bold text-slate-800">${item.namaPelapor}</td>
                     <td class="p-3">${item.desa} <span class="text-[10px] text-slate-400 block">Kec. ${item.kecamatan}</span></td>
-                    <td class="p-3">${item.jenisKasus}</td>
+                    <td class="p-3">${displayJenisKasus_(item.jenisKasus)}</td>
+                    <td class="p-3 text-slate-600 whitespace-pre-line">${escapeHtml(String(item.tindakLanjut || item.arahanDinasPMD || "-"))}</td>
                     <td class="p-3">
                         <select onchange="updateTableCaseStatus('${item.noReg}', this.value)" class="border border-slate-300 rounded-lg p-1.5 text-xs font-bold bg-white outline-none text-emerald-800">
                             <option value="Kasus Berjalan" ${currentStatus === 'Kasus Berjalan' ? 'selected' : ''}>Kasus Berjalan</option>
@@ -3582,10 +3590,10 @@ function openSIPOSPDF(type){
                         </select>
                     </td>
                     <td class="p-3 text-center">
-                        <button type="button" onclick='openCaseSummaryModal(${JSON.stringify(item.noReg || '')})' class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm">
+                        ${item.noReg ? `<button type="button" onclick='openCaseSummaryModal(${JSON.stringify(item.noReg || '')})' class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm">
                             <i class="fa-solid fa-eye"></i> Lihat
-                        </button>
-                        ${(['admin','paralegal'].includes(window.currentUser?.role)) ? `
+                        </button>` : '<span class="text-[10px] text-slate-400">Data lama</span>'}
+                        ${(['admin','paralegal'].includes(window.currentUser?.role) && item.noReg) ? `
                         <button type="button" onclick='openCaseEditModal(${JSON.stringify(item.noReg || '')})' class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold shadow-sm ml-1">
                             <i class="fa-solid fa-pen-to-square"></i> Edit
                         </button>
@@ -3597,7 +3605,7 @@ function openSIPOSPDF(type){
             });
 
             if (filteredKasus.length === 0) {
-                html = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada data kasus masuk untuk kriteria wilayah ini.</td></tr>`;
+                html = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Belum ada data kasus masuk untuk kriteria wilayah ini.</td></tr>`;
             }
             tbody.innerHTML = html;
         }
@@ -3710,10 +3718,11 @@ function openSIPOSPDF(type){
                         <div><label class="block text-xs font-bold text-slate-600 mb-1">Alamat</label><input id="edit-alamat" value="${esc(item.alamat)}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
                         <div><label class="block text-xs font-bold text-slate-600 mb-1">Kecamatan</label><input id="edit-kecamatan" value="${esc(item.kecamatan)}" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
                         <div><label class="block text-xs font-bold text-slate-600 mb-1">Desa / Kelurahan</label><input id="edit-desa" value="${esc(item.desa)}" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
-                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Jenis Kasus</label><select id="edit-jenisKasus" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"><option value="">-- Pilih --</option><option value="Perdata - Sengketa Tanah" ${jenis==='Perdata - Sengketa Tanah'?'selected':''}>Perdata - Sengketa Tanah</option><option value="Perdata - Waris" ${jenis==='Perdata - Waris'?'selected':''}>Perdata - Waris</option><option value="Pidana - Penganiayaan" ${jenis==='Pidana - Penganiayaan'?'selected':''}>Pidana - Penganiayaan</option><option value="Pidana - KDRT" ${jenis==='Pidana - KDRT'?'selected':''}>Pidana - KDRT</option><option value="Lainnya" ${jenis==='Lainnya'?'selected':''}>Lainnya</option></select></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Jenis Kasus</label><select id="edit-jenisKasus" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"><option value="">-- Pilih --</option><option value="Perdata - Sengketa Tanah" ${jenis==='Perdata - Sengketa Tanah'?'selected':''}>Sengketa Tanah</option><option value="Perdata - Waris" ${jenis==='Perdata - Waris'?'selected':''}>Sengketa Waris & Keluarga</option><option value="Pidana - Penganiayaan" ${jenis==='Pidana - Penganiayaan'?'selected':''}>Penganiayaan</option><option value="Pidana - KDRT" ${jenis==='Pidana - KDRT'?'selected':''}>KDRT</option><option value="Lainnya" ${jenis==='Lainnya'?'selected':''}>Lainnya</option></select></div>
                         <div><label class="block text-xs font-bold text-slate-600 mb-1">Bentuk Bantuan</label><input id="edit-bantuan" value="${esc(bantuan)}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
                         <div><label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Kejadian</label><input id="edit-tglKejadian" type="date" value="${esc(item.tglKejadian || '')}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
                         <div><label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Pelaporan</label><input id="edit-tglPelaporan" type="date" value="${esc(item.tglPelaporan || item.tanggal || '')}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Tindak Lanjut / Arahan Dinas PMD</label><textarea id="edit-tindakLanjut" rows="3" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm" placeholder="Isi arahan/tindak lanjut dari Dinas PMD jika ada...">${esc(item.tindakLanjut || item.arahanDinasPMD || '')}</textarea></div>
                         <div><label class="block text-xs font-bold text-slate-600 mb-1">Status Kasus</label><select id="edit-statusKasus" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"><option value="Kasus Berjalan" ${status==='Kasus Berjalan'?'selected':''}>Kasus Berjalan</option><option value="Kasus Selesai via Konsultasi" ${status==='Kasus Selesai via Konsultasi'?'selected':''}>Kasus Selesai via Konsultasi</option><option value="Kasus Selesai via Mediasi" ${status==='Kasus Selesai via Mediasi'?'selected':''}>Kasus Selesai via Mediasi</option><option value="Kasus Selesai via Rujukan" ${status==='Kasus Selesai via Rujukan'?'selected':''}>Kasus Selesai via Rujukan</option><option value="Kasus Selesai via Dihentikan" ${status==='Kasus Selesai via Dihentikan'?'selected':''}>Kasus Selesai via Dihentikan</option></select></div>
                     </div>
                     <div><label class="block text-xs font-bold text-slate-600 mb-1">Kronologi</label><textarea id="edit-kronologi" rows="5" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">${esc(item.kronologi)}</textarea></div>
@@ -3734,7 +3743,7 @@ function openSIPOSPDF(type){
                 noReg, namaPelapor:document.getElementById('edit-namaPelapor').value.trim(), nik:document.getElementById('edit-nik').value.trim(),
                 gender:document.getElementById('edit-gender').value, pendidikan:document.getElementById('edit-pendidikan').value.trim(), hp:document.getElementById('edit-hp').value.trim(), alamat:document.getElementById('edit-alamat').value.trim(),
                 kecamatan:document.getElementById('edit-kecamatan').value.trim(), desa:document.getElementById('edit-desa').value.trim(), jenisKasus:document.getElementById('edit-jenisKasus').value, bantuan:document.getElementById('edit-bantuan').value.trim(),
-                tglKejadian:document.getElementById('edit-tglKejadian').value, tglPelaporan:document.getElementById('edit-tglPelaporan').value, kronologi:document.getElementById('edit-kronologi').value.trim(), catatan:document.getElementById('edit-catatan').value.trim(), statusKasus:document.getElementById('edit-statusKasus').value
+                tglKejadian:document.getElementById('edit-tglKejadian').value, tglPelaporan:document.getElementById('edit-tglPelaporan').value, kronologi:document.getElementById('edit-kronologi').value.trim(), catatan:document.getElementById('edit-catatan').value.trim(), tindakLanjut:document.getElementById('edit-tindakLanjut').value.trim(), statusKasus:document.getElementById('edit-statusKasus').value
             };
             if (!/^\d{16}$/.test(payload.nik)) { alert('NIK harus 16 digit.'); return; }
             try {
@@ -3826,10 +3835,10 @@ function openSIPOSPDF(type){
             csvContent += "DINAS PEMBERDAYAAN MASYARAKAT DAN DESA\n";
             csvContent += "SISTEM INFORMASI POS BANTUAN HUKUM (SI-POSBANKUM)\n";
             csvContent += "LAPORAN REKAPITULASI JUMLAH KASUS MASUK POSBANKUM DESA\n\n";
-            csvContent += "No.Reg,Tanggal Pelaporan,Nama Pelapor,Desa,Kecamatan,Jenis Kasus,Status Kasus,Petugas\n";
+            csvContent += "No.Reg,Tanggal Pelaporan,Nama Pelapor,Desa,Kecamatan,Jenis Kasus,Tindak Lanjut / Arahan Dinas PMD,Status Kasus,Petugas\n";
             
             window.databaseKasus.forEach(row => {
-                csvContent += `"${row.noReg}","${row.tglPelaporan || row.tanggal}","${row.namaPelapor}","${row.desa}","${row.kecamatan}","${row.jenisKasus}","${row.statusKasus}","${row.petugas}"\n`;
+                csvContent += `"${row.noReg}","${row.tglPelaporan || row.tanggal}","${row.namaPelapor}","${row.desa}","${row.kecamatan}","${displayJenisKasus_(row.jenisKasus)}","${String(row.tindakLanjut || row.arahanDinasPMD || "-").replace(/"/g, "\"\"")}","${row.statusKasus}","${row.petugas}"\n`;
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -3853,6 +3862,20 @@ function openSIPOSPDF(type){
                 chartTrenInstance.data.datasets[0].data=[249,265,trend2026];
                 chartTrenInstance.update('none');
             }
+        }
+
+        // Label tampilan Jenis Kasus. Nilai database TIDAK diubah.
+        function displayJenisKasus_(value) {
+            const v=String(value||'Lainnya').trim();
+            const map={
+                'Perdata - Sengketa Tanah':'Sengketa Tanah',
+                'Perdata - Waris':'Sengketa Waris & Keluarga',
+                'Perdata - Waris & Keluarga':'Sengketa Waris & Keluarga',
+                'Pidana - Penganiayaan':'Penganiayaan',
+                'Pidana - KDRT':'KDRT',
+                'Lainnya':'Lainnya'
+            };
+            return map[v]||v;
         }
 
         function updateDashboardStatsAndCharts() {
@@ -3911,8 +3934,17 @@ function openSIPOSPDF(type){
                 setText('stat-dihentikan-persen',pct(dihentikan)+'% dari total kasus');
                 const jenis=d.jenisKasusAgregat||d.jenisKasus||d.jenisKasusCount||{};
                 const jenisSource=useScopedCases?roleJenisCount:jenis;
-                const jenisLabels=Object.keys(jenisSource);
-                const jenisValues=jenisLabels.map(k=>Number(jenisSource[k]||0));
+                const jenisDisplayMap={
+                    'Perdata - Sengketa Tanah':'Sengketa Tanah',
+                    'Perdata - Waris':'Sengketa Waris & Keluarga',
+                    'Perdata - Waris & Keluarga':'Sengketa Waris & Keluarga',
+                    'Pidana - Penganiayaan':'Penganiayaan',
+                    'Pidana - KDRT':'KDRT',
+                    'Lainnya':'Lainnya'
+                };
+                const jenisLabelsRaw=Object.keys(jenisSource);
+                const jenisLabels=jenisLabelsRaw.map(k=>displayJenisKasus_(k));
+                const jenisValues=jenisLabelsRaw.map(k=>Number(jenisSource[k]||0));
                 const labelAndPercentagePlugin={id:'publicLabelPercentage',afterDatasetsDraw(chart){const ctx=chart.ctx;chart.data.datasets.forEach((ds,di)=>{const meta=chart.getDatasetMeta(di);const total=ds.data.reduce((a,b)=>a+Number(b||0),0);meta.data.forEach((el,i)=>{const val=Number(ds.data[i]||0);if(!val)return;const pct=total?((val/total)*100).toFixed(1)+'%':'0%';const txt=`${val} (${pct})`;const pos=el.tooltipPosition();ctx.save();ctx.font='bold 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';const w=ctx.measureText(txt).width;ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(pos.x-w/2-3,pos.y-8,w+6,16);ctx.fillStyle='#0f172a';ctx.fillText(txt,pos.x,pos.y);ctx.restore();});});}};
 
                 const cJenis=document.getElementById('chartJenisKasus');
@@ -4075,7 +4107,7 @@ function openSIPOSPDF(type){
                 chartJenisKasusInstance = new Chart(ctxJenis, {
                     type: 'doughnut',
                     data: {
-                        labels: Object.keys(jenisKasusCount),
+                        labels: Object.keys(jenisKasusCount).map(k => displayJenisKasus_(k)),
                         datasets: [{ data: Object.values(jenisKasusCount), backgroundColor: ['#10b981', '#0f4c81', '#f59e0b', '#6366f1', '#64748b'] }]
                     },
                     options: { animation: { duration: 1200, easing: 'easeOutQuart' }, responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } },
