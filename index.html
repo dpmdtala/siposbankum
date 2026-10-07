@@ -426,6 +426,7 @@ document.addEventListener('keydown',function(e){
   .news-print-photo-missing{width:72mm;max-width:100%;min-height:18mm;display:flex;align-items:center;justify-content:center;text-align:center;border:1px dashed #cbd5e1;border-radius:1mm;margin:2mm 0;padding:3mm;font-size:7pt;color:#64748b;background:#f8fafc;}
   .news-print-youtube{font-size:7pt;color:#475569;overflow-wrap:anywhere;margin-top:1.5mm;}
   .news-print-author{font-size:7pt;color:#64748b;margin-top:2mm;}
+  .news-print-auth{margin-top:5mm;padding:3mm;border:.3mm solid #9ca3af;background:#f8fafc;font-size:6.5pt;line-height:1.45;color:#374151;}
   .news-print-footer{border-top:.3mm solid #cbd5e1;padding-top:2mm;margin-top:5mm;font-size:6.5pt;color:#64748b;text-align:center;}
   @page{size:A4 portrait;margin:8mm;}
 }
@@ -726,7 +727,7 @@ function openSIPOSPDF(type){
                             <div class="mt-4"><h3 class="font-bold text-sm uppercase tracking-wide underline">Laporan Dashboard & Statistik Posbankum Desa</h3></div><p class="mt-3 text-[9px] text-slate-500 italic">Keterangan autentikasi: Dokumen ini dicetak dari data yang tersimpan pada SI-POSBANKUM dan merupakan data asli yang telah terautentikasi oleh sistem.</p>
                         </div>
 
-                        <div class="bg-gradient-to-r from-sky-100 via-blue-100 to-cyan-100 rounded-3xl p-6 text-slate-800 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-sky-200">
+                        <div class="bg-gradient-to-r from-sky-300 via-blue-300 to-cyan-300 rounded-3xl p-6 text-slate-900 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-sky-400">
                             <div class="flex items-center gap-4">
                                 <div class="hidden sm:flex w-20 h-20 rounded-2xl bg-white/95 p-2 shadow-md shrink-0">
                                     <img id="dashboard-sipos-logo" src="" alt="Logo SI-POSBANKUM" class="w-full h-full object-contain">
@@ -1995,15 +1996,20 @@ function openSIPOSPDF(type){
             const x=String(v||'').replace(/^ACCESS_/,'').replace(/_/g,' ').toLowerCase();
             return x.replace(/\b\w/g,m=>m.toUpperCase());
         }
+        // Normalisasi wilayah dipakai lintas fungsi, terutama Rekap Kasus Masuk.
+        // Harus global agar renderJumlahKasusTable() tidak pernah memunculkan
+        // error "normalizeWilayah is not defined" saat Paralegal login.
+        function normalizeWilayah(v){
+            return String(v ?? '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                .replace(/\s+/g,' ').trim().toLowerCase();
+        }
+
         async function loadInternalData(forceFresh=false) {
             const r=await apiRequest('internalDashboard',{forceFresh:!!forceFresh},{retry:false,timeoutMs:60000});
             const payload=r?.data||{};
             const serverKasus=(Array.isArray(payload.kasus)?payload.kasus:[]).filter(k=>k && Object.keys(k).some(key=>key && !String(key).startsWith('_') && String(k[key]??'').trim()!==''));
             const role=String(window.currentUser?.role||'').trim().toLowerCase();
-            const normalizeWilayah=(v)=>String(v??'')
-                .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-                .replace(/\s+/g,' ').trim().toLowerCase();
-
             // ================================================================
             // SECURITY BOUNDARY — FRONTEND DEFENSE IN DEPTH
             // Server/GAS adalah sumber kewenangan utama. Frontend tetap
@@ -3166,6 +3172,7 @@ function openSIPOSPDF(type){
                     <div class="news-print-filter">${filterText?filterText+' &nbsp; | &nbsp; ':''}Jumlah data: <b>${data.length}</b></div>
                 </div>
                 <div class="news-print-list">${rows}</div>
+                <div class="news-print-auth"><strong>Keterangan autentikasi:</strong> Dokumen ini dicetak dari data yang tersimpan pada SI-POSBANKUM dan merupakan data asli yang telah terautentikasi oleh sistem.</div>
                 <div class="news-print-footer">Dicetak dari SI-POSBANKUM Kabupaten Tanah Laut • ${new Date().toLocaleString('id-ID')}</div>`;
             document.body.appendChild(sheet);
             document.body.classList.add('print-berita-kegiatan');
@@ -3581,13 +3588,14 @@ function openSIPOSPDF(type){
                     <td class="p-3">${displayJenisKasus_(item.jenisKasus)}</td>
                     <td class="p-3 text-slate-600 whitespace-pre-line">${escapeHtml(String(item.tindakLanjut || item.arahanDinasPMD || "-"))}</td>
                     <td class="p-3">
+                        ${isSuperAdmin ? `
                         <select onchange="updateTableCaseStatus('${item.noReg}', this.value)" class="border border-slate-300 rounded-lg p-1.5 text-xs font-bold bg-white outline-none text-emerald-800">
                             <option value="Kasus Berjalan" ${currentStatus === 'Kasus Berjalan' ? 'selected' : ''}>Kasus Berjalan</option>
                             <option value="Kasus Selesai via Konsultasi" ${currentStatus === 'Kasus Selesai via Konsultasi' ? 'selected' : ''}>Kasus Selesai via Konsultasi</option>
                             <option value="Kasus Selesai via Mediasi" ${currentStatus === 'Kasus Selesai via Mediasi' ? 'selected' : ''}>Kasus Selesai via Mediasi</option>
                             <option value="Kasus Selesai via Rujukan" ${currentStatus === 'Kasus Selesai via Rujukan' ? 'selected' : ''}>Kasus Selesai via Rujukan</option>
                             <option value="Kasus Selesai via Dihentikan" ${currentStatus === 'Kasus Selesai via Dihentikan' ? 'selected' : ''}>Kasus Selesai via Dihentikan</option>
-                        </select>
+                        </select>` : `<span class="text-xs font-semibold text-slate-600">${escapeHtml(currentStatus)}</span>`}
                     </td>
                     <td class="p-3 text-center">
                         ${item.noReg ? `<button type="button" onclick='openCaseSummaryModal(${JSON.stringify(item.noReg || '')})' class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm">
@@ -3690,7 +3698,7 @@ function openSIPOSPDF(type){
             const petugas=petugasDariPembuat || String(item.petugas||'').trim() || (window.currentUser?.role==='paralegal' ? String(window.currentUser?.fullname||'-') : '-');
             const w=window.open('','_blank','width=900,height=700');
             if(!w){alert('Pop-up diblokir browser. Izinkan pop-up untuk mencetak ringkasan kasus.');return;}
-            w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Ringkasan Kasus ${esc(item.noReg)}</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:36px;font-size:13px}h1,h2,h3{margin:0} .kop{text-align:center;border-bottom:2px solid #111827;padding-bottom:12px;margin-bottom:20px}.kop-logo{width:78px;height:78px;object-fit:contain;margin:0 auto 8px;display:block}.kop .a{font-weight:700;font-size:14px}.kop .b{font-weight:800;font-size:16px}.kop .c{font-weight:800;font-size:18px;margin-top:4px}.title{text-align:center;font-weight:800;font-size:16px;margin:18px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.box{border:1px solid #d1d5db;border-radius:8px;padding:10px}.label{font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700}.value{font-weight:700;margin-top:4px;white-space:pre-line}.full{margin-top:14px}.full .value{line-height:1.6}.auth{margin-top:18px;padding:9px 10px;border:1px solid #9ca3af;background:#f8fafc;font-size:9px;line-height:1.45;color:#374151}.foot{margin-top:10px;text-align:right;font-size:10px;color:#6b7280}.actions{margin-top:24px;text-align:center}@media print{.actions{display:none}} </style></head><body onload="setTimeout(function(){window.print()},250)"><div class="kop"><img class="kop-logo" src="${SIPOS_LOGO_DATA}" alt="Logo SI-POSBANKUM"><div class="a">PEMERINTAH KABUPATEN TANAH LAUT</div><div class="b">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</div><div class="c">SI-POSBANKUM</div></div><div class="title">RINGKASAN KASUS</div><div class="grid"><div class="box"><div class="label">No. Registrasi</div><div class="value">${esc(item.noReg)}</div></div><div class="box"><div class="label">Status Kasus</div><div class="value">${esc(item.statusKasus||'Kasus Berjalan')}</div></div><div class="box"><div class="label">Nama Pelapor</div><div class="value">${esc(item.namaPelapor)}</div></div><div class="box"><div class="label">Wilayah</div><div class="value">${esc(item.desa)} • Kec. ${esc(item.kecamatan)}</div></div><div class="box"><div class="label">Jenis Kasus</div><div class="value">${esc(item.jenisKasus)}</div></div><div class="box"><div class="label">Bentuk Bantuan</div><div class="value">${esc(item.bantuan)}</div></div><div class="box"><div class="label">Tanggal Kejadian</div><div class="value">${esc(formatDateOnly_(item.tglKejadian||item.tanggal))}</div></div><div class="box"><div class="label">Tanggal Pelaporan</div><div class="value">${esc(formatDateOnly_(item.tglPelaporan||item.tanggal))}</div></div></div><div class="box full"><div class="label">Ringkasan Kronologi Kasus</div><div class="value">${esc(item.kronologi||'Ringkasan kronologi belum diisi.')}</div></div><div class="grid full"><div class="box"><div class="label">Catatan</div><div class="value">${esc(item.catatan||'-')}</div></div><div class="box"><div class="label">Petugas</div><div class="value">${esc(petugas)}</div></div></div><div class="foot">Dicetak dari SI-POSBANKUM</div><div class="actions"><button onclick="window.print()">Print</button></div></body></html>`);
+            w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Ringkasan Kasus ${esc(item.noReg)}</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:36px;font-size:13px}h1,h2,h3{margin:0} .kop{text-align:center;border-bottom:2px solid #111827;padding-bottom:12px;margin-bottom:20px}.kop-logo{width:78px;height:78px;object-fit:contain;margin:0 auto 8px;display:block}.kop .a{font-weight:700;font-size:14px}.kop .b{font-weight:800;font-size:16px}.kop .c{font-weight:800;font-size:18px;margin-top:4px}.title{text-align:center;font-weight:800;font-size:16px;margin:18px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.box{border:1px solid #d1d5db;border-radius:8px;padding:10px}.label{font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700}.value{font-weight:700;margin-top:4px;white-space:pre-line}.full{margin-top:14px}.full .value{line-height:1.6}.auth{margin-top:18px;padding:9px 10px;border:1px solid #9ca3af;background:#f8fafc;font-size:9px;line-height:1.45;color:#374151}.foot{margin-top:10px;text-align:right;font-size:10px;color:#6b7280}.actions{margin-top:24px;text-align:center}@media print{.actions{display:none}} </style></head><body onload="setTimeout(function(){window.print()},250)"><div class="kop"><img class="kop-logo" src="${SIPOS_LOGO_DATA}" alt="Logo SI-POSBANKUM"><div class="a">PEMERINTAH KABUPATEN TANAH LAUT</div><div class="b">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</div><div class="c">SI-POSBANKUM</div></div><div class="title">RINGKASAN KASUS</div><div class="grid"><div class="box"><div class="label">No. Registrasi</div><div class="value">${esc(item.noReg)}</div></div><div class="box"><div class="label">Status Kasus</div><div class="value">${esc(item.statusKasus||'Kasus Berjalan')}</div></div><div class="box"><div class="label">Nama Pelapor</div><div class="value">${esc(item.namaPelapor)}</div></div><div class="box"><div class="label">Wilayah</div><div class="value">${esc(item.desa)} • Kec. ${esc(item.kecamatan)}</div></div><div class="box"><div class="label">Jenis Kasus</div><div class="value">${esc(item.jenisKasus)}</div></div><div class="box"><div class="label">Bentuk Bantuan</div><div class="value">${esc(item.bantuan)}</div></div><div class="box"><div class="label">Tanggal Kejadian</div><div class="value">${esc(formatDateOnly_(item.tglKejadian||item.tanggal))}</div></div><div class="box"><div class="label">Tanggal Pelaporan</div><div class="value">${esc(formatDateOnly_(item.tglPelaporan||item.tanggal))}</div></div></div><div class="box full"><div class="label">Ringkasan Kronologi Kasus</div><div class="value">${esc(item.kronologi||'Ringkasan kronologi belum diisi.')}</div></div><div class="grid full"><div class="box"><div class="label">Catatan</div><div class="value">${esc(item.catatan||'-')}</div></div><div class="box"><div class="label">Petugas</div><div class="value">${esc(petugas)}</div></div></div><div class="auth"><strong>Keterangan autentikasi:</strong> Dokumen ini dicetak dari data yang tersimpan pada SI-POSBANKUM dan merupakan data asli yang telah terautentikasi oleh sistem.</div><div class="foot">Dicetak dari SI-POSBANKUM</div><div class="actions"><button onclick="window.print()">Print</button></div></body></html>`);
             w.document.close();
         }
 
@@ -3757,7 +3765,7 @@ function openSIPOSPDF(type){
                 noReg, namaPelapor:document.getElementById('edit-namaPelapor').value.trim(), nik:document.getElementById('edit-nik').value.trim(),
                 gender:document.getElementById('edit-gender').value, pendidikan:document.getElementById('edit-pendidikan').value.trim(), hp:document.getElementById('edit-hp').value.trim(), alamat:document.getElementById('edit-alamat').value.trim(),
                 kecamatan:document.getElementById('edit-kecamatan').value.trim(), desa:document.getElementById('edit-desa').value.trim(), jenisKasus:document.getElementById('edit-jenisKasus').value, bantuan:document.getElementById('edit-bantuan').value.trim(),
-                tglKejadian:document.getElementById('edit-tglKejadian').value, tglPelaporan:document.getElementById('edit-tglPelaporan').value, kronologi:document.getElementById('edit-kronologi').value.trim(), catatan:document.getElementById('edit-catatan').value.trim(), tindakLanjut:document.getElementById('edit-tindakLanjut').value.trim(), statusKasus:document.getElementById('edit-statusKasus').value
+                tglKejadian:document.getElementById('edit-tglKejadian').value, tglPelaporan:document.getElementById('edit-tglPelaporan').value, kronologi:document.getElementById('edit-kronologi').value.trim(), catatan:document.getElementById('edit-catatan').value.trim(), tindakLanjut:(window.currentUser?.role==='admin' ? (document.getElementById('edit-tindakLanjut')?.value.trim()||'') : String((window.databaseKasus||[]).find(k=>String(k.noReg||'')===String(noReg||''))?.tindakLanjut || (window.databaseKasus||[]).find(k=>String(k.noReg||'')===String(noReg||''))?.arahanDinasPMD || '')), statusKasus:document.getElementById('edit-statusKasus').value
             };
             if (!/^\d{16}$/.test(payload.nik)) { alert('NIK harus 16 digit.'); form.dataset.saving='0'; if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML=originalBtnHtml;} return; }
             const original=(window.databaseKasus||[]).find(k=>String(k.noReg||'')===String(noReg||''))||{};
@@ -3766,7 +3774,9 @@ function openSIPOSPDF(type){
             const followupChanged=!same(payload.tindakLanjut,original.tindakLanjut||original.arahanDinasPMD);
             try {
                 if(!otherFieldsChanged && followupChanged){
-                    const r=await apiRequest('updateCaseFollowup',{noReg,tindakLanjut:payload.tindakLanjut},{timeoutMs:45000,retry:false});
+                    // Simpan melalui endpoint updateCase yang sudah dipakai aplikasi utama.
+                    // Ini menjaga kompatibilitas dengan deployment GAS yang telah berjalan.
+                    const r=await apiRequest('updateCase',payload,{timeoutMs:60000,retry:false});
                     if(!r?.ok) throw new Error(r?.message||'Tindak Lanjut / Arahan Dinas PMD gagal disimpan.');
                 }else{
                     const r=await apiRequest('updateCase',payload,{timeoutMs:60000,retry:false});
@@ -3831,7 +3841,18 @@ function openSIPOSPDF(type){
             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
             try {
                 const value = document.getElementById('followup-tindakLanjut')?.value.trim() || '';
-                const r = await apiRequest('updateCaseFollowup', {noReg, tindakLanjut:value}, {timeoutMs:45000,retry:false});
+                const item = (window.databaseKasus || []).find(k => String(k.noReg || '') === String(noReg || ''));
+                if (!item) throw new Error('Data kasus tidak ditemukan.');
+                const payload = {
+                    noReg,
+                    namaPelapor:String(item.namaPelapor||''), nik:String(item.nik||''), gender:String(item.gender||''),
+                    pendidikan:String(item.pendidikan||''), hp:String(item.hp||''), alamat:String(item.alamat||''),
+                    kecamatan:String(item.kecamatan||''), desa:String(item.desa||''), jenisKasus:String(item.jenisKasus||'Lainnya'),
+                    bantuan:String(item.bantuan||''), tglKejadian:String(item.tglKejadian||''),
+                    tglPelaporan:String(item.tglPelaporan||item.tanggal||''), kronologi:String(item.kronologi||''),
+                    catatan:String(item.catatan||''), tindakLanjut:value, statusKasus:String(item.statusKasus||'Kasus Berjalan')
+                };
+                const r = await apiRequest('updateCaseFollowup', {noReg, tindakLanjut:value}, {timeoutMs:60000,retry:false});
                 if (!r || r.ok === false) throw new Error(r?.message || 'Server tidak mengonfirmasi penyimpanan.');
                 const idx = (window.databaseKasus || []).findIndex(k => String(k.noReg || '') === String(noReg || ''));
                 if (idx >= 0) { window.databaseKasus[idx].tindakLanjut=value; window.databaseKasus[idx].arahanDinasPMD=value; }
@@ -3896,9 +3917,9 @@ function openSIPOSPDF(type){
             const desaRows=Object.values(desa).sort((a,b)=>b.n-a.n).map(v=>`<tr><td>${esc(v.d)}</td><td>${esc(v.k)}</td><td>${v.n}</td><td>${(v.s/v.n).toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="4">Belum ada data.</td></tr>';
             const kritik=data.slice().sort((a,b)=>String(b.createdAt||b.tanggal||'').localeCompare(String(a.createdAt||a.tanggal||''))).map(x=>`<div class="kritik"><b>${esc(x.nama||'Anonim')}</b> • ${esc(x.desa||'Desa tidak diisi')} • ${esc(x.kecamatan||'Kecamatan tidak diisi')} <span class="stars">${'★'.repeat(Number(x.rating||0))}${'☆'.repeat(5-Number(x.rating||0))}</span><p>${esc(x.kritik||'Tidak ada kritik/saran.')}</p><small>${esc(formatDateTime_(x.createdAt||x.tanggal||''))}</small></div>`).join('')||'<p>Belum ada kritik dan saran.</p>';
             const w=window.open('','_blank','width=1100,height=800'); if(!w){alert('Popup diblokir browser. Izinkan popup untuk mencetak laporan.');return;}
-            w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rekap & Analisis Kepuasan Layanan - SI-POSBANKUM</title><style>body{font-family:Arial;margin:28px;font-size:12px;color:#111827}.kop{text-align:center;border-bottom:2px solid #111827;padding-bottom:10px}.kop-logo{width:78px;height:78px;object-fit:contain;margin:0 auto 8px;display:block}.sub{text-align:center;margin:14px 0}.cards{display:flex;gap:10px}.card{flex:1;border:1px solid #cbd5e1;padding:10px;text-align:center}.label{font-size:10px;color:#64748b}.value{font-size:20px;font-weight:bold}h2{font-size:14px;margin-top:20px;border-bottom:1px solid #111827;padding-bottom:5px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:6px}th{background:#f1f5f9}.center{text-align:center}.kritik{border:1px solid #cbd5e1;padding:8px;margin:6px 0}.stars{float:right;color:#d97706}.kritik p{white-space:pre-wrap;margin:7px 0}</style>
+            w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rekap & Analisis Kepuasan Layanan - SI-POSBANKUM</title><style>body{font-family:Arial;margin:28px;font-size:12px;color:#111827}.kop{text-align:center;border-bottom:2px solid #111827;padding-bottom:10px}.kop-logo{width:78px;height:78px;object-fit:contain;margin:0 auto 8px;display:block}.sub{text-align:center;margin:14px 0}.cards{display:flex;gap:10px}.card{flex:1;border:1px solid #cbd5e1;padding:10px;text-align:center}.label{font-size:10px;color:#64748b}.value{font-size:20px;font-weight:bold}h2{font-size:14px;margin-top:20px;border-bottom:1px solid #111827;padding-bottom:5px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:6px}th{background:#f1f5f9}.center{text-align:center}.kritik{border:1px solid #cbd5e1;padding:8px;margin:6px 0}.stars{float:right;color:#d97706}.kritik p{white-space:pre-wrap;margin:7px 0}.auth{margin-top:18px;padding:9px 10px;border:1px solid #9ca3af;background:#f8fafc;font-size:9px;line-height:1.45;color:#374151}</style>
 
-</head><body><div class="kop"><img class="kop-logo" src="${SIPOS_LOGO_DATA}" alt="Logo SI-POSBANKUM"><b>PEMERINTAH KABUPATEN TANAH LAUT</b><br><b>DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</b><br><b>SI-POSBANKUM</b><br>Sistem Informasi Pos Bantuan Hukum</div><div class="sub"><h1>REKAP & ANALISIS KEPUASAN LAYANAN</h1>${selectedDesa?`Desa/Kelurahan: <b>${esc(selectedDesa)}</b>`:'Seluruh Desa/Kelurahan'}</div><div class="cards"><div class="card"><div class="label">Rating Kepuasan</div><div class="value">${avg.toFixed(2)} / 5</div></div><div class="card"><div class="label">Jumlah Responden</div><div class="value">${total}</div></div><div class="card"><div class="label">Responden 4–5 Bintang</div><div class="value">${positive}%</div></div></div><h2>Distribusi Penilaian</h2><table><tr><th>Rating</th><th>Jumlah</th></tr>${counts.map((n,i)=>`<tr><td>${i+1} Bintang</td><td class="center">${n}</td></tr>`).join('')}</table><h2>Rekap Berdasarkan Kecamatan</h2><table><tr><th>Kecamatan</th><th>Responden</th><th>Rata-rata</th></tr>${kecRows}</table><h2>Rekap Berdasarkan Desa/Kelurahan</h2><table><tr><th>Desa/Kelurahan</th><th>Kecamatan</th><th>Responden</th><th>Rata-rata</th></tr>${desaRows}</table><h2>Kritik & Saran</h2>${kritik}<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`); w.document.close();
+</head><body><div class="kop"><img class="kop-logo" src="${SIPOS_LOGO_DATA}" alt="Logo SI-POSBANKUM"><b>PEMERINTAH KABUPATEN TANAH LAUT</b><br><b>DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</b><br><b>SI-POSBANKUM</b><br>Sistem Informasi Pos Bantuan Hukum</div><div class="sub"><h1>REKAP & ANALISIS KEPUASAN LAYANAN</h1>${selectedDesa?`Desa/Kelurahan: <b>${esc(selectedDesa)}</b>`:'Seluruh Desa/Kelurahan'}</div><div class="cards"><div class="card"><div class="label">Rating Kepuasan</div><div class="value">${avg.toFixed(2)} / 5</div></div><div class="card"><div class="label">Jumlah Responden</div><div class="value">${total}</div></div><div class="card"><div class="label">Responden 4–5 Bintang</div><div class="value">${positive}%</div></div></div><h2>Distribusi Penilaian</h2><table><tr><th>Rating</th><th>Jumlah</th></tr>${counts.map((n,i)=>`<tr><td>${i+1} Bintang</td><td class="center">${n}</td></tr>`).join('')}</table><h2>Rekap Berdasarkan Kecamatan</h2><table><tr><th>Kecamatan</th><th>Responden</th><th>Rata-rata</th></tr>${kecRows}</table><h2>Rekap Berdasarkan Desa/Kelurahan</h2><table><tr><th>Desa/Kelurahan</th><th>Kecamatan</th><th>Responden</th><th>Rata-rata</th></tr>${desaRows}</table><h2>Kritik & Saran</h2>${kritik}<div class="auth"><strong>Keterangan autentikasi:</strong> Dokumen ini dicetak dari data yang tersimpan pada SI-POSBANKUM dan merupakan data asli yang telah terautentikasi oleh sistem.</div><script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`); w.document.close();
         }
 
         async function updateTableCaseStatus(noReg,newStatus){try{await apiRequest('updateCaseStatus',{noReg,statusKasus:newStatus});await loadInternalData();updateDashboardStatsAndCharts();renderJumlahKasusTable();}catch(e){alert(e.message);}}
@@ -3924,7 +3945,8 @@ function openSIPOSPDF(type){
             csvContent += "PEMERINTAH KABUPATEN TANAH LAUT\n";
             csvContent += "DINAS PEMBERDAYAAN MASYARAKAT DAN DESA\n";
             csvContent += "SISTEM INFORMASI POS BANTUAN HUKUM (SI-POSBANKUM)\n";
-            csvContent += "LAPORAN REKAPITULASI JUMLAH KASUS MASUK POSBANKUM DESA\n\n";
+            csvContent += "LAPORAN REKAPITULASI JUMLAH KASUS MASUK POSBANKUM DESA\n";
+            csvContent += "KETERANGAN AUTENTIKASI: Data ini berasal dari data yang tersimpan pada aplikasi SI-POSBANKUM dan merupakan data asli yang telah terautentikasi oleh sistem.\n\n";
             csvContent += "No.Reg,Tanggal Pelaporan,Nama Pelapor,Desa,Kecamatan,Jenis Kasus,Tindak Lanjut / Arahan Dinas PMD,Status Kasus,Petugas\n";
             
             window.databaseKasus.forEach(row => {
@@ -4463,7 +4485,7 @@ function buildCsv135(rows){
     r.no||i+1,r.kecamatan||'',r.desa||'',r.jenisWilayah||'',
     r.fullname||'',r.noHp||'',r.username||'',r.passwordAwal||'',r.aktif||'YA'
   ].map(csvEscape135).join(',')));
-  return '\ufeff'+out.join('\r\n');
+  return '\ufeffKETERANGAN AUTENTIKASI: Data ini berasal dari data yang tersimpan pada aplikasi SI-POSBANKUM dan merupakan data asli yang telah terautentikasi oleh sistem.\r\n\r\n'+out.join('\r\n');
 }
 async function waitJsPdf135(){
   for(let i=0;i<100;i++){
@@ -4507,6 +4529,8 @@ async function makeLoginPdf135(rows){
     pdf.text('STATUS: '+(val(r,['aktif','Status'])||'YA').toUpperCase(),x+4,yy);
     pdf.setFont('helvetica','normal'); pdf.setFontSize(6.1);
     pdf.text(pdf.splitTextToSize('RAHASIA • Berikan hanya kepada paralegal yang bersangkutan. Ubah password setelah login pertama.',cw-8),x+4,y+ch-7);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(4.7);
+    pdf.text(pdf.splitTextToSize('Autentikasi: data berasal dari aplikasi SI-POSBANKUM dan telah terautentikasi oleh sistem.',cw-8),x+4,y+ch-2.5);
   });
   const d=new Date(),p=n=>String(n).padStart(2,'0');
   pdf.save('KARTU_LOGIN_PARALEGAL_135_'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'.pdf');
