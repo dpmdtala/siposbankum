@@ -3894,27 +3894,32 @@ function openSIPOSPDF(type){
                 const value = document.getElementById('followup-tindakLanjut')?.value.trim() || '';
                 const item = (window.databaseKasus || []).find(k => String(k.noReg || '') === String(noReg || ''));
                 if (!item) throw new Error('Data kasus tidak ditemukan.');
-                const payload = {
-                    noReg,
-                    namaPelapor:String(item.namaPelapor||''), nik:String(item.nik||''), gender:String(item.gender||''),
-                    pendidikan:String(item.pendidikan||''), hp:String(item.hp||''), alamat:String(item.alamat||''),
-                    kecamatan:String(item.kecamatan||''), desa:String(item.desa||''), jenisKasus:String(item.jenisKasus||'Lainnya'),
-                    bantuan:String(item.bantuan||''), tglKejadian:String(item.tglKejadian||''),
-                    tglPelaporan:String(item.tglPelaporan||item.tanggal||''), kronologi:String(item.kronologi||''),
-                    catatan:String(item.catatan||''), tindakLanjut:value, statusKasus:String(item.statusKasus||'Kasus Berjalan')
-                };
                 const r = await apiRequest('updateCaseFollowup', {noReg, tindakLanjut:value}, {timeoutMs:60000,retry:false});
                 if (!r || r.ok !== true || r.data?.updated !== true || String(r.data?.tindakLanjut ?? '') !== value) {
-                    throw new Error(r?.message || 'Server belum mengonfirmasi bahwa Arahan Dinas PMD benar-benar tersimpan.');
+                    throw new Error(r?.message || 'Server belum mengonfirmasi penyimpanan arahan. Pastikan GAS versi terbaru telah di-deploy.');
                 }
-                const idx = (window.databaseKasus || []).findIndex(k => String(k.noReg || '') === String(noReg || ''));
-                if (idx >= 0) { window.databaseKasus[idx].tindakLanjut=value; window.databaseKasus[idx].arahanDinasPMD=value; }
-                closeCaseSummaryModal();
+                // Tampilkan hasil tersimpan LANGSUNG tanpa reload dan tanpa menunggu fetch lain.
+                const idx = (window.databaseKasus || []).findIndex(k => String(k.noReg || '').trim() === String(noReg || '').trim());
+                if (idx >= 0) {
+                    window.databaseKasus[idx].tindakLanjut = value;
+                    window.databaseKasus[idx].arahanDinasPMD = value;
+                }
                 renderJumlahKasusTable();
                 updateDashboardStatsAndCharts();
-                alert('Tindak Lanjut / Arahan Dinas PMD berhasil disimpan dan dikonfirmasi oleh Google Sheets.');
-                // Refresh data in the background; do not reload the page or interrupt the user.
-                loadInternalData(true).then(()=>{ renderJumlahKasusTable(); updateDashboardStatsAndCharts(); }).catch(err=>console.warn('Penyegaran setelah simpan Arahan Dinas PMD tertunda:',err));
+                // Tetap tampilkan modal sebagai bukti visual hasil simpan.
+                const body = document.getElementById('case-summary-body');
+                if (body) body.innerHTML = `<div class="space-y-4">
+                    <div class="rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 font-bold">Arahan Dinas PMD berhasil disimpan ke Google Sheets.</div>
+                    <div class="text-xs font-semibold text-slate-500">No. Registrasi: ${escapeHtml(String(noReg))}</div>
+                    <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                        <div class="text-xs font-extrabold text-blue-800 mb-2">Arahan / Catatan Dinas PMD yang tersimpan</div>
+                        <div class="text-sm text-slate-800 whitespace-pre-line">${escapeHtml(value || '(Arahan dikosongkan)')}</div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeCaseSummaryModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 font-bold text-xs">Tutup</button>
+                    </div>
+                </div>`;
+                // Jangan panggil loadInternalData di sini: respons cache lama bisa menimpa tampilan terbaru.
             } catch (e) {
                 alert(`Tindak Lanjut / Arahan Dinas PMD gagal disimpan.\n\n${e.message || 'Silakan coba lagi.'}`);
             } finally {
