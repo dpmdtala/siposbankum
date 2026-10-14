@@ -1923,7 +1923,19 @@ function openSIPOSPDF(type){
         };
 
         // SI-POSBANKUM V3.0 client/API layer
-        window.SIPOSBANKUM_API_URL = 'https://script.google.com/macros/s/AKfycbyhqpPmK2bUbAQqm38Viiljcxtcc5XvemPmbp9bFUDTOt-sb0EdQ9y0_TmHfRuhGJ6l/exec';
+        const SIPOSBANKUM_DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyhqpPmK2bUbAQqm38Viiljcxtcc5XvemPmbp9bFUDTOt-sb0EdQ9y0_TmHfRuhGJ6l/exec';
+        window.SIPOSBANKUM_API_URL = SIPOSBANKUM_DEFAULT_API_URL;
+        try {
+            const savedApiUrl = localStorage.getItem('siposbankum.apiUrl');
+            if (savedApiUrl) {
+                const parsedApiUrl = new URL(savedApiUrl);
+                if (parsedApiUrl.protocol === 'https:' && parsedApiUrl.hostname === 'script.google.com' && /\/macros\/s\/[^/]+\/exec$/.test(parsedApiUrl.pathname)) {
+                    window.SIPOSBANKUM_API_URL = parsedApiUrl.href;
+                }
+            }
+        } catch (_) { /* browser storage may be unavailable; use configured default */ }
+        const gasUrlInputOnLoad = document.getElementById('sheets-url-input');
+        if (gasUrlInputOnLoad) gasUrlInputOnLoad.value = window.SIPOSBANKUM_API_URL;
         window.siposToken = null;
         window.currentUser = null;
         window.databaseKasus = []; window.databasePenyuluhan = []; window.databaseBerita = []; window.databaseParalegal = []; window.databaseKepuasan = [];
@@ -2110,16 +2122,29 @@ function openSIPOSPDF(type){
                 const admin=window.currentUser.role==='admin';
                 if(admin){
                     const people={};
-                    items.filter(x=>String(x.senderRole||'')==='paralegal').forEach(x=>{ people[x.senderUsername]={username:x.senderUsername,name:x.senderName||x.senderUsername,desa:x.senderDesa||'-'}; });
+                    (Array.isArray(r.data?.paralegals)?r.data.paralegals:[]).forEach(x=>{
+                        const username=String(x.username||'').trim().toLowerCase();
+                        if(username) people[username]={username,name:x.fullname||username,desa:x.desa||'-',kecamatan:x.kecamatan||'-'};
+                    });
+                    // Backward-compatible fallback for any older backend response.
+                    items.filter(x=>String(x.senderRole||'')==='paralegal').forEach(x=>{
+                        const username=String(x.senderUsername||'').trim().toLowerCase();
+                        if(username && !people[username]) people[username]={username,name:x.senderName||username,desa:x.senderDesa||'-',kecamatan:'-'};
+                    });
                     const sel=document.getElementById('chat-recipient');
                     if(sel){
                         const previous=chatSelectedRecipient||sel.value;
-                        sel.innerHTML='<option value="">-- Pilih Paralegal --</option>'+Object.values(people).sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(x=>`<option value="${escapeHtml(x.username)}">${escapeHtml(x.name)} • ${escapeHtml(x.desa)}</option>`).join('');
-                        if(previous && people[previous]) { sel.value=previous; chatSelectedRecipient=previous; }
+                        sel.innerHTML='<option value="">-- Pilih tujuan pesan --</option><option value="__all__">📢 Semua Paralegal (pesan siaran)</option>'+Object.values(people).sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(x=>`<option value="${escapeHtml(x.username)}">${escapeHtml(x.name)} • ${escapeHtml(x.desa)} • ${escapeHtml(x.kecamatan)}</option>`).join('');
+                        if(previous && (previous==='__all__' || people[previous])) { sel.value=previous; chatSelectedRecipient=previous; }
+                        else { sel.value=''; chatSelectedRecipient=''; }
                         sel.onchange=()=>selectChatRecipient(sel.value);
                     }
-                    if(!items.length){ container.innerHTML='<div class="h-full flex items-center justify-center text-center text-slate-400 text-xs">Belum ada pesan Live Chat.</div>'; return; }
-                    const filtered=chatSelectedRecipient ? items.filter(x=>String(x.senderUsername||'')===chatSelectedRecipient || String(x.recipientUsername||'')===chatSelectedRecipient) : items;
+                    if(!items.length){ container.innerHTML='<div class="h-full flex items-center justify-center text-center text-slate-400 text-xs">Belum ada pesan Live Chat. Pilih tujuan pesan untuk mulai mengirim.</div>'; return; }
+                    const filtered=chatSelectedRecipient==='__all__'
+                        ? items.filter(x=>String(x.recipientUsername||'')==='__all__')
+                        : chatSelectedRecipient
+                            ? items.filter(x=>String(x.senderUsername||'').toLowerCase()===chatSelectedRecipient || String(x.recipientUsername||'').toLowerCase()===chatSelectedRecipient || String(x.recipientUsername||'')==='__all__')
+                            : items;
                     if(!filtered.length){ container.innerHTML='<div class="h-full flex items-center justify-center text-center text-slate-400 text-xs">Pilih Paralegal untuk melihat percakapan.</div>'; return; }
                     container.innerHTML=filtered.map(x=>{
                         const mine=String(x.senderRole||'')==='admin';
@@ -2145,7 +2170,7 @@ function openSIPOSPDF(type){
             if(!['admin','paralegal'].includes(role)) return;
             const input=document.getElementById('chat-input-msg'); const txt=input.value.trim(); if(!txt) return;
             const recipient=role==='admin' ? String(document.getElementById('chat-recipient')?.value||chatSelectedRecipient||'').trim().toLowerCase() : 'superadmin';
-            if(role==='admin' && !recipient){ alert('Pilih Paralegal yang akan menerima balasan.'); return; }
+            if(role==='admin' && !recipient){ alert('Pilih Semua Paralegal untuk pesan siaran atau pilih satu Paralegal untuk pesan pribadi.'); return; }
             try { input.disabled=true; await apiRequest('sendChat',{message:txt,recipientUsername:recipient}); input.value=''; await loadChatMessages_(); }
             catch(err){ alert(err.message||'Pesan gagal dikirim.'); }
             finally { input.disabled=false; input.focus(); }
@@ -2280,13 +2305,35 @@ function openSIPOSPDF(type){
         }
         function updateOnlineCounter(){ refreshOnlineUsers_(); }
 
-        function saveSheetsConfig() {
-            const url = document.getElementById('sheets-url-input').value.trim();
+        async function saveSheetsConfig() {
+            const input = document.getElementById('sheets-url-input');
+            const url = String(input?.value || '').trim();
             if (!url) { alert('URL Google Apps Script belum diisi.'); return; }
-            try { new URL(url); } catch (e) { alert('URL Google Apps Script tidak valid.'); return; }
-            window.SIPOSBANKUM_API_URL = 'https://script.google.com/macros/s/AKfycbyhqpPmK2bUbAQqm38Viiljcxtcc5XvemPmbp9bFUDTOt-sb0EdQ9y0_TmHfRuhGJ6l/exec';;
-            setCloudStatus('Menghubungkan ke Google Sheets...');
-            alert('URL Google Apps Script berhasil disimpan.');
+            let parsed;
+            try { parsed = new URL(url); } catch (_) { alert('URL Google Apps Script tidak valid.'); return; }
+            if (parsed.protocol !== 'https:' || parsed.hostname !== 'script.google.com' || !/\/macros\/s\/[^/]+\/exec$/.test(parsed.pathname)) {
+                alert('Masukkan URL Web App GAS lengkap dengan format https://script.google.com/macros/s/ID_DEPLOYMENT/exec.');
+                return;
+            }
+            const normalizedUrl = parsed.href;
+            const previousUrl = window.SIPOSBANKUM_API_URL;
+            try {
+                window.SIPOSBANKUM_API_URL = normalizedUrl;
+                try { localStorage.setItem('siposbankum.apiUrl', normalizedUrl); }
+                catch (_) { throw new Error('Browser tidak mengizinkan penyimpanan konfigurasi. Periksa pengaturan penyimpanan browser.'); }
+                setCloudStatus('Menguji koneksi Google Apps Script...');
+                await apiRequest('apiVersion', {}, {timeoutMs:15000,retry:false});
+                setCloudStatus('Koneksi Google Apps Script aktif.');
+                alert('URL Google Apps Script berhasil disimpan dan koneksi berhasil diuji.');
+            } catch (err) {
+                window.SIPOSBANKUM_API_URL = previousUrl;
+                try {
+                    if (previousUrl) localStorage.setItem('siposbankum.apiUrl', previousUrl);
+                    else localStorage.removeItem('siposbankum.apiUrl');
+                } catch (_) {}
+                setCloudStatus('Konfigurasi GAS belum terverifikasi.');
+                alert('URL GAS belum dapat digunakan. Periksa URL dan deployment Web App.\n\n' + (err?.message || 'Koneksi gagal.'));
+            }
         }
 
         function setupRegionalDropdowns() {
@@ -3819,7 +3866,7 @@ function openSIPOSPDF(type){
                     <div class="mt-1">Kasus: <b>${esc(item.noReg)}</b> • ${esc(item.desa)} • Kec. ${esc(item.kecamatan)}</div>
                 </div>
                 <div><label class="block text-xs font-bold text-slate-600 mb-1">Isi Tindak Lanjut / Arahan Dinas PMD</label>
-                    <textarea id="followup-tindakLanjut" rows="7" class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" placeholder="Tuliskan arahan, tindak lanjut, hasil koordinasi, atau instruksi Dinas PMD...">${esc(item.tindakLanjut || item.arahanDinasPMD || '')}</textarea>
+                    <textarea id="followup-tindakLanjut" rows="7" maxlength="5000" class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" placeholder="Tuliskan arahan, tindak lanjut, hasil koordinasi, atau instruksi Dinas PMD...">${esc(item.tindakLanjut || item.arahanDinasPMD || '')}</textarea>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeCaseSummaryModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Batal</button>
@@ -3857,12 +3904,17 @@ function openSIPOSPDF(type){
                     catatan:String(item.catatan||''), tindakLanjut:value, statusKasus:String(item.statusKasus||'Kasus Berjalan')
                 };
                 const r = await apiRequest('updateCaseFollowup', {noReg, tindakLanjut:value}, {timeoutMs:60000,retry:false});
-                if (!r || r.ok === false) throw new Error(r?.message || 'Server tidak mengonfirmasi penyimpanan.');
+                if (!r || r.ok !== true || r.data?.updated !== true || String(r.data?.tindakLanjut ?? '') !== value) {
+                    throw new Error(r?.message || 'Server belum mengonfirmasi bahwa Arahan Dinas PMD benar-benar tersimpan.');
+                }
                 const idx = (window.databaseKasus || []).findIndex(k => String(k.noReg || '') === String(noReg || ''));
                 if (idx >= 0) { window.databaseKasus[idx].tindakLanjut=value; window.databaseKasus[idx].arahanDinasPMD=value; }
                 closeCaseSummaryModal();
                 renderJumlahKasusTable();
-                alert('Tindak Lanjut / Arahan Dinas PMD berhasil disimpan.');
+                updateDashboardStatsAndCharts();
+                alert('Tindak Lanjut / Arahan Dinas PMD berhasil disimpan dan dikonfirmasi oleh Google Sheets.');
+                // Refresh data in the background; do not reload the page or interrupt the user.
+                loadInternalData(true).then(()=>{ renderJumlahKasusTable(); updateDashboardStatsAndCharts(); }).catch(err=>console.warn('Penyegaran setelah simpan Arahan Dinas PMD tertunda:',err));
             } catch (e) {
                 alert(`Tindak Lanjut / Arahan Dinas PMD gagal disimpan.\n\n${e.message || 'Silakan coba lagi.'}`);
             } finally {
